@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-17)
 
 **Core value:** Reliably download podcast episodes as MP3 files so they're ready to transfer to an offline player
-**Current focus:** Phase 3 in progress -- Download pipeline services built, orchestrator next
+**Current focus:** Phase 3 complete -- Full download pipeline operational
 
 ## Current Position
 
 Phase: 3 of 3 (Core Download Pipeline)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-02-17 -- Completed 03-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-17 -- Completed 03-02-PLAN.md
 
-Progress: [#########.] 90%
+Progress: [##########] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 2.2min
-- Total execution time: 0.18 hours
+- Total execution time: 0.22 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [#########.] 90%
 |-------|-------|-------|----------|
 | 01-foundation-state-types | 2 | 5min | 2.5min |
 | 02-feed-management | 2 | 4min | 2min |
-| 03-core-download-pipeline | 1 | 2min | 2min |
+| 03-core-download-pipeline | 2 | 4min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 2min, 2min, 2min, 2min
+- Last 5 plans: 2min, 2min, 2min, 2min, 2min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -59,6 +59,8 @@ Recent decisions affecting current work:
 - 03-01: Old history.json format (string arrays) transparently migrated on read
 - 03-01: Only audio/mpeg enclosures accepted in RSS parser (exact match, not startsWith)
 - 03-01: ReadableStream type assertion from node:stream/web for Web API to Node.js bridge
+- 03-02: filterEpisodes and buildEpisodePath are module-private helpers, not exported
+- 03-02: No new dependencies -- reuses existing picocolors, commander, and all Plan 1 services
 
 ### Pending Todos
 
@@ -71,5 +73,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 03-01-PLAN.md
-Resume file: .planning/phases/03-core-download-pipeline/03-01-SUMMARY.md
+Stopped at: Completed 03-02-PLAN.md -- All phases complete
+Resume file: .planning/phases/03-core-download-pipeline/03-02-SUMMARY.md
