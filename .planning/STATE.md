@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-17)
 
 **Core value:** Reliably download podcast episodes as MP3 files so they're ready to transfer to an offline player
-**Current focus:** Phase 1 -- Foundation -- State & Types
+**Current focus:** Phase 1 complete -- ready for Phase 2 (Feed Management)
 
 ## Current Position
 
-Phase: 1 of 3 (Foundation -- State & Types)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-02-17 -- Completed 01-01-PLAN.md
+Phase: 1 of 3 (Foundation -- State & Types) -- COMPLETE
+Plan: 2 of 2 in current phase -- COMPLETE
+Status: Phase Complete
+Last activity: 2026-02-17 -- Completed 01-02-PLAN.md
 
-Progress: [#.........] 10%
+Progress: [###.......] 30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 3min
-- Total execution time: 0.05 hours
+- Total plans completed: 2
+- Average duration: 2.5min
+- Total execution time: 0.08 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-state-types | 1 | 3min | 3min |
+| 01-foundation-state-types | 2 | 5min | 2.5min |
 
 **Recent Trend:**
-- Last 5 plans: 3min
-- Trend: -
+- Last 5 plans: 3min, 2min
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -46,6 +46,8 @@ Recent decisions affecting current work:
 - Research: feedsmith for RSS parsing, Commander for CLI, JSON files for state, filenamify for sanitization
 - 01-01: Used write-file-atomic library for atomic writes (per user decision, not hand-rolled)
 - 01-01: Path resolution uses process.cwd() for project-relative data/ directory (no ~/)
+- 01-02: sanitizeDirName strips all non-alphanumeric/non-dash chars for true lowercase+dashes-only output
+- 01-02: History store never checks filesystem for MP3 files -- only reads/writes its own JSON (STATE-02)
 
 ### Pending Todos
 
@@ -58,5 +60,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 01-01-PLAN.md (foundation scaffold)
-Resume file: .planning/phases/01-foundation-state-types/01-01-SUMMARY.md
+Stopped at: Completed 01-02-PLAN.md (state stores & sanitize -- Phase 1 complete)
+Resume file: .planning/phases/01-foundation-state-types/01-02-SUMMARY.md
