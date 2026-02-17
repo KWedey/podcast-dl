@@ -64,7 +64,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Enhance types/history store for failed state, create RSS parser and episode downloader services
+- [x] 03-01-PLAN.md -- Enhance types/history store for failed state, create RSS parser and episode downloader services
 - [ ] 03-02-PLAN.md -- Download command orchestrator with filtering, retry, console output, and CLI wiring
 
 ## Future Work (v2)
@@ -90,4 +90,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Foundation -- State & Types | 0/2 | Not started | - |
 | 2. Feed Management | 0/2 | Complete    | 2026-02-17 |
-| 3. Core Download Pipeline | 0/2 | Not started | - |
+| 3. Core Download Pipeline | 1/2 | In Progress | - |
