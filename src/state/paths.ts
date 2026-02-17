@@ -17,3 +17,11 @@ export function getFeedsPath(): string {
 export function getHistoryPath(): string {
   return join(getDataDir(), 'history.json');
 }
+
+/**
+ * Get the project-relative downloads directory for episode files.
+ * Uses <project-root>/downloads/ -- keeps downloads alongside data files.
+ */
+export function getDownloadsDir(): string {
+  return join(process.cwd(), 'downloads');
+}

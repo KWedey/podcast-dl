@@ -8,8 +8,16 @@ export interface Feed {
   addedAt: string;
 }
 
-/** Download history: maps feed URL to array of downloaded episode GUIDs */
-export type DownloadHistory = Record<string, string[]>;
+/** A single history entry tracking an episode's download status */
+export interface HistoryEntry {
+  /** Episode GUID */
+  guid: string;
+  /** Whether the episode was successfully downloaded or failed */
+  status: 'downloaded' | 'failed';
+}
+
+/** Download history: maps feed URL to array of history entries */
+export type DownloadHistory = Record<string, HistoryEntry[]>;
 
 /** A parsed podcast episode from an RSS feed */
 export interface Episode {
