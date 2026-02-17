@@ -66,7 +66,7 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Each v1 requirement maps to exactly one phase. Phase 3 uses the state layer built in Phase 1 but does not own those requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -82,8 +82,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DL-03 | Phase 3 | Pending |
 | DL-04 | Phase 3 | Pending |
 | DL-05 | Phase 3 | Pending |
-| STATE-01 | Phase 3 | Pending |
-| STATE-02 | Phase 3 | Pending |
 | CLI-01 | Phase 3 | Pending |
 | CLI-03 | Phase 3 | Pending |
 
@@ -94,4 +92,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-17*
-*Last updated: 2026-02-17 after initial definition*
+*Last updated: 2026-02-17 after roadmap creation*
