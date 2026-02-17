@@ -11,7 +11,7 @@ This roadmap delivers a CLI tool that downloads podcast episodes from RSS feeds 
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [ ] **Phase 1: Foundation -- State & Types** - TypeScript types, JSON stores with atomic writes, filename sanitization utilities
-- [ ] **Phase 2: Feed Management** - CLI commands to add/remove feeds with RSS validation
+- [x] **Phase 2: Feed Management** - CLI commands to add/remove feeds with RSS validation (completed 2026-02-17)
 - [ ] **Phase 3: Core Download Pipeline** - Episode downloading with GUID tracking, streaming, and progress output
 
 **Deferred (v2):** Phase 4 (Polish & UX) covers POLISH-01 through POLISH-04 and ENH-01/ENH-02. Not planned until v1 is validated in real use.
@@ -42,7 +42,7 @@ Plans:
   2. Running `podcast-dl add <url>` with an invalid or non-RSS URL rejects it with a clear error (does not save)
   3. Running `podcast-dl remove <url-or-name>` removes a previously added feed from the feeds store
   4. Feed subscriptions persist across process restarts (stored in feeds.json)
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 02-01-PLAN.md -- Install dependencies, feed validator service, and CLI command handlers (add, remove, list)
@@ -89,5 +89,5 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation -- State & Types | 0/2 | Not started | - |
-| 2. Feed Management | 0/2 | Not started | - |
+| 2. Feed Management | 0/2 | Complete    | 2026-02-17 |
 | 3. Core Download Pipeline | 0/? | Not started | - |
