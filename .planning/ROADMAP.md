@@ -12,7 +12,7 @@ This roadmap delivers a CLI tool that downloads podcast episodes from RSS feeds 
 
 - [ ] **Phase 1: Foundation -- State & Types** - TypeScript types, JSON stores with atomic writes, filename sanitization utilities
 - [x] **Phase 2: Feed Management** - CLI commands to add/remove feeds with RSS validation (completed 2026-02-17)
-- [ ] **Phase 3: Core Download Pipeline** - Episode downloading with GUID tracking, streaming, and progress output
+- [x] **Phase 3: Core Download Pipeline** - Episode downloading with GUID tracking, streaming, and progress output (completed 2026-02-17)
 
 **Deferred (v2):** Phase 4 (Polish & UX) covers POLISH-01 through POLISH-04 and ENH-01/ENH-02. Not planned until v1 is validated in real use.
 
@@ -61,7 +61,7 @@ Plans:
   6. Downloads stream to disk without buffering entire files in memory (handles large episodes)
   7. If a download is interrupted, the incomplete file is not left behind as if complete (temp file + rename pattern)
   8. Console output shows which episodes are being downloaded as they are processed
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md -- Enhance types/history store for failed state, create RSS parser and episode downloader services
@@ -90,4 +90,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Foundation -- State & Types | 0/2 | Not started | - |
 | 2. Feed Management | 0/2 | Complete    | 2026-02-17 |
-| 3. Core Download Pipeline | 1/2 | In Progress | - |
+| 3. Core Download Pipeline | 1/2 | Complete    | 2026-02-17 |
