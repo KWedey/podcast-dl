@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { registerAddCommand } from './commands/add.js';
 import { registerRemoveCommand } from './commands/remove.js';
 import { registerListCommand } from './commands/list.js';
+import { registerDownloadCommand } from './commands/download.js';
 
 const program = new Command();
 
@@ -14,5 +15,6 @@ program
 registerAddCommand(program);
 registerRemoveCommand(program);
 registerListCommand(program);
+registerDownloadCommand(program);
 
 program.parseAsync(process.argv);
