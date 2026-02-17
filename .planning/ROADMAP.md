@@ -42,11 +42,11 @@ Plans:
   2. Running `podcast-dl add <url>` with an invalid or non-RSS URL rejects it with a clear error (does not save)
   3. Running `podcast-dl remove <url-or-name>` removes a previously added feed from the feeds store
   4. Feed subscriptions persist across process restarts (stored in feeds.json)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md -- Install dependencies, feed validator service, and CLI command handlers (add, remove, list)
+- [ ] 02-02-PLAN.md -- CLI entry point wiring and end-to-end verification
 
 ### Phase 3: Core Download Pipeline
 **Goal**: User can run a single command to check all subscribed feeds and download new episodes as MP3 files, organized by podcast, without re-downloading
@@ -89,5 +89,5 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation -- State & Types | 0/2 | Not started | - |
-| 2. Feed Management | 0/? | Not started | - |
+| 2. Feed Management | 0/2 | Not started | - |
 | 3. Core Download Pipeline | 0/? | Not started | - |
