@@ -1,0 +1,97 @@
+# Requirements: RSS Podcast Downloader
+
+**Defined:** 2026-02-17
+**Core Value:** Reliably download podcast episodes as MP3 files so they're ready to transfer to an offline player
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### Feed Management
+
+- [ ] **FEED-01**: User can add an RSS feed URL via CLI command
+- [ ] **FEED-02**: User can remove a feed via CLI command
+- [ ] **FEED-03**: Feed URLs are validated (confirmed parseable as RSS) on add
+
+### Download
+
+- [ ] **DL-01**: Tool downloads audio enclosures from RSS feeds as MP3 files
+- [ ] **DL-02**: Downloads are organized into `downloads/<PodcastName>/episode.mp3` folder structure
+- [ ] **DL-03**: Tool downloads up to 5 most recent un-downloaded episodes per feed
+- [ ] **DL-04**: Downloads use streaming (not buffering entire file in memory)
+- [ ] **DL-05**: Incomplete downloads are not treated as complete (temp file + rename pattern)
+
+### State Tracking
+
+- [ ] **STATE-01**: Tool tracks downloaded episodes by GUID to avoid re-downloading
+- [ ] **STATE-02**: Deleting an MP3 file does not cause re-download (history is independent of filesystem)
+- [ ] **STATE-03**: State files use atomic writes to prevent corruption
+
+### CLI
+
+- [ ] **CLI-01**: Single `download` (or `sync`) command checks all feeds and downloads new episodes
+- [ ] **CLI-02**: Filenames are sanitized for filesystem safety (FAT32 compatible)
+- [ ] **CLI-03**: Console output shows which episodes are being downloaded
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### Polish
+
+- **POLISH-01**: Date-prefixed filenames (`YYYY-MM-DD_title.mp3`) for chronological sorting
+- **POLISH-02**: List feeds command showing subscription status
+- **POLISH-03**: Dry-run/preview mode showing what would be downloaded
+- **POLISH-04**: Download resume via HTTP Range headers for interrupted transfers
+
+### Enhancements
+
+- **ENH-01**: ID3 tag writing (podcast name, episode title, date)
+- **ENH-02**: YouTube audio download
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Audio format conversion (ffmpeg) | Hard dependency, most feeds serve MP3 |
+| Scheduled/daemon mode | User can wrap in cron; adds process management complexity |
+| OPML import/export | Overkill for 1-5 feeds |
+| Per-episode metadata JSON | Clutters MP3 player filesystem |
+| Playlist generation (M3U) | Target player navigates by folder |
+| Concurrent downloads | Unnecessary at 1-5 feed scale, adds complexity |
+| Episode filtering by regex/date | Over-engineering; 5-episode limit is sufficient |
+| GUI or web interface | CLI only per project scope |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| STATE-01 | Phase 1 | Pending |
+| STATE-02 | Phase 1 | Pending |
+| STATE-03 | Phase 1 | Pending |
+| CLI-02 | Phase 1 | Pending |
+| FEED-01 | Phase 2 | Pending |
+| FEED-02 | Phase 2 | Pending |
+| FEED-03 | Phase 2 | Pending |
+| DL-01 | Phase 3 | Pending |
+| DL-02 | Phase 3 | Pending |
+| DL-03 | Phase 3 | Pending |
+| DL-04 | Phase 3 | Pending |
+| DL-05 | Phase 3 | Pending |
+| STATE-01 | Phase 3 | Pending |
+| STATE-02 | Phase 3 | Pending |
+| CLI-01 | Phase 3 | Pending |
+| CLI-03 | Phase 3 | Pending |
+
+**Coverage:**
+- v1 requirements: 13 total
+- Mapped to phases: 13
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-02-17*
+*Last updated: 2026-02-17 after initial definition*
