@@ -27,11 +27,11 @@ This roadmap delivers a CLI tool that downloads podcast episodes from RSS feeds 
   2. A history store can persist downloaded episode GUIDs to a JSON file and read them back across process restarts
   3. Writing to either store does not corrupt data if the process crashes mid-write (atomic write via temp file + rename)
   4. A filename sanitization utility produces FAT32-safe filenames from arbitrary podcast/episode titles (no colons, slashes, or illegal characters; truncated to safe length)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md -- Scaffold TypeScript project, type definitions, atomic write helper, path resolution
+- [ ] 01-02-PLAN.md -- Feeds store, history store, filename sanitization utility
 
 ### Phase 2: Feed Management
 **Goal**: User can subscribe to and unsubscribe from podcast feeds via CLI, with validation that URLs are real RSS feeds
@@ -88,6 +88,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation -- State & Types | 0/? | Not started | - |
+| 1. Foundation -- State & Types | 0/2 | Not started | - |
 | 2. Feed Management | 0/? | Not started | - |
 | 3. Core Download Pipeline | 0/? | Not started | - |
