@@ -1,0 +1,23 @@
+{
+  "name": "podcast-dl",
+  "version": "0.1.0",
+  "description": "CLI tool that downloads podcast episodes from RSS feeds as MP3 files",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/write-file-atomic": "^4.0.3",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "filenamify": "^7.0.1",
+    "write-file-atomic": "^7.0.0"
+  }
+}
