@@ -14,10 +14,14 @@
   "license": "ISC",
   "devDependencies": {
     "@types/write-file-atomic": "^4.0.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "commander": "^14.0.3",
+    "feedsmith": "^2.9.0",
     "filenamify": "^7.0.1",
+    "picocolors": "^1.1.1",
     "write-file-atomic": "^7.0.0"
   }
 }
