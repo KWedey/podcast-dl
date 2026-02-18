@@ -2,19 +2,18 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-17)
+See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Reliably download podcast episodes as MP3 files so they're ready to transfer to an offline player
-**Current focus:** Phase 3 complete -- Full download pipeline operational
+**Current focus:** v1.0 shipped — planning next milestone
 
 ## Current Position
 
-Phase: 3 of 3 (Core Download Pipeline)
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-02-17 -- Completed 03-02-PLAN.md
+Phase: v1.0 complete
+Status: Milestone Shipped
+Last activity: 2026-02-18 -- Completed v1.0 milestone
 
-Progress: [##########] 100%
+Progress: [##########] 100% (v1.0)
 
 ## Performance Metrics
 
@@ -31,47 +30,22 @@ Progress: [##########] 100%
 | 02-feed-management | 2 | 4min | 2min |
 | 03-core-download-pipeline | 2 | 4min | 2min |
 
-**Recent Trend:**
-- Last 5 plans: 2min, 2min, 2min, 2min, 2min
-- Trend: stable
-
-*Updated after each plan completion*
-
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Roadmap: 3 active phases (quick depth), v2 polish/enhancements deferred until v1 validated
-- Research: feedsmith for RSS parsing, Commander for CLI, JSON files for state, filenamify for sanitization
-- 01-01: Used write-file-atomic library for atomic writes (per user decision, not hand-rolled)
-- 01-01: Path resolution uses process.cwd() for project-relative data/ directory (no ~/)
-- 01-02: sanitizeDirName strips all non-alphanumeric/non-dash chars for true lowercase+dashes-only output
-- 01-02: History store never checks filesystem for MP3 files -- only reads/writes its own JSON (STATE-02)
-- 02-01: Only accept feeds with audio enclosures (reject video-only and non-podcast RSS)
-- 02-01: registerXCommand(program) pattern for CLI subcommand registration
-- 02-01: List output: name + URL sorted alphabetically, no numbering or dates
-- 02-02: Used parseAsync (not parse) to handle async add command correctly
-- 02-02: bin field points to dist/cli.js, dev script uses npx tsx for TypeScript execution
-- 03-01: HistoryEntry uses { guid, status } for downloaded/failed tracking with upsert semantics
-- 03-01: Old history.json format (string arrays) transparently migrated on read
-- 03-01: Only audio/mpeg enclosures accepted in RSS parser (exact match, not startsWith)
-- 03-01: ReadableStream type assertion from node:stream/web for Web API to Node.js bridge
-- 03-02: filterEpisodes and buildEpisodePath are module-private helpers, not exported
-- 03-02: No new dependencies -- reuses existing picocolors, commander, and all Plan 1 services
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
-Last session: 2026-02-17
-Stopped at: Completed 03-02-PLAN.md -- All phases complete
-Resume file: .planning/phases/03-core-download-pipeline/03-02-SUMMARY.md
+Last session: 2026-02-18
+Stopped at: Completed v1.0 milestone
+Resume file: .planning/MILESTONES.md
