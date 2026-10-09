@@ -23,8 +23,11 @@ const RFC_2822 =
 const ISO_8601 =
   /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?\s*(z|[+-]\d{2}(?::?\d{2})?)?$/i;
 
-/** A zone Date.parse recognises, so its fallback result is not machine-local time. */
-const KNOWN_ZONE = /\b(?:gmt|utc?|z|[ecmp][sd]t)\b|[+-]\d{2}:?\d{2}\b/i;
+/**
+ * A zone Date.parse recognises, so its fallback result is not machine-local time.
+ * An offset counts only after the time or a space: the "-2024" in "01-Jan-2024" is no zone.
+ */
+const KNOWN_ZONE = /\b(?:gmt|utc?|z|[ecmp][sd]t)\b|(?:\d:\d{2}(?:\.\d+)?|\s)[+-]\d/i;
 
 /**
  * Parse a feed date into an ISO 8601 string, or null if it is not a real date.
