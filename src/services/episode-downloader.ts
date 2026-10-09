@@ -1,9 +1,15 @@
 import { createWriteStream } from 'node:fs';
 import { rename, rm, mkdir } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { dirname } from 'node:path';
 import type { ReadableStream } from 'node:stream/web';
+
+/**
+ * Give up once no bytes have arrived for this long. There is no cap on the
+ * total time, so a large episode on a slow line can take as long as it needs.
+ */
+const IDLE_TIMEOUT_MS = 60_000;
 
 /** Result of an episode download attempt */
 export interface DownloadResult {
@@ -27,14 +33,26 @@ export async function downloadEpisode(
   destPath: string,
 ): Promise<DownloadResult> {
   const tmpPath = destPath + '.tmp';
+  const controller = new AbortController();
+  let stalled = false;
+  let idleTimer: NodeJS.Timeout | undefined;
+  const resetIdleTimer = () => {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      stalled = true;
+      controller.abort();
+    }, IDLE_TIMEOUT_MS);
+  };
 
   try {
     await mkdir(dirname(destPath), { recursive: true });
 
+    resetIdleTimer();
     const response = await fetch(audioUrl, {
       headers: { 'User-Agent': 'podcast-dl/0.1.0' },
-      signal: AbortSignal.timeout(300_000), // 5 min timeout for large files
+      signal: controller.signal,
     });
+    resetIdleTimer();
 
     // Throw rather than return, so every failure goes through the temp-file cleanup below.
     if (!response.ok) {
@@ -50,7 +68,13 @@ export async function downloadEpisode(
     const nodeStream = Readable.fromWeb(
       response.body as ReadableStream<Uint8Array>,
     );
-    await pipeline(nodeStream, createWriteStream(tmpPath));
+    const resetOnData = new Transform({
+      transform(chunk, _encoding, callback) {
+        resetIdleTimer();
+        callback(null, chunk);
+      },
+    });
+    await pipeline(nodeStream, resetOnData, createWriteStream(tmpPath));
 
     // Atomic rename: temp -> final
     await rename(tmpPath, destPath);
@@ -61,7 +85,13 @@ export async function downloadEpisode(
     // Best effort: the error worth reporting is the one that got us here.
     await rm(tmpPath, { force: true }).catch(() => {});
 
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = stalled
+      ? `Download stalled: no data for ${IDLE_TIMEOUT_MS / 1000} s`
+      : error instanceof Error
+        ? error.message
+        : 'Unknown error';
     return { success: false, error: message };
+  } finally {
+    clearTimeout(idleTimer);
   }
 }
