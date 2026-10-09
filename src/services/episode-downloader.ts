@@ -34,14 +34,13 @@ export async function downloadEpisode(
 ): Promise<DownloadResult> {
   const tmpPath = destPath + '.tmp';
   const controller = new AbortController();
-  let stalled = false;
   let idleTimer: NodeJS.Timeout | undefined;
   const resetIdleTimer = () => {
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      stalled = true;
-      controller.abort();
-    }, IDLE_TIMEOUT_MS);
+    idleTimer = setTimeout(
+      () => controller.abort(new Error(`Download stalled: no data for ${IDLE_TIMEOUT_MS / 1000} s`)),
+      IDLE_TIMEOUT_MS,
+    );
   };
 
   try {
@@ -85,12 +84,7 @@ export async function downloadEpisode(
     // Best effort: the error worth reporting is the one that got us here.
     await rm(tmpPath, { force: true }).catch(() => {});
 
-    const message = stalled
-      ? `Download stalled: no data for ${IDLE_TIMEOUT_MS / 1000} s`
-      : error instanceof Error
-        ? error.message
-        : 'Unknown error';
-    return { success: false, error: message };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   } finally {
     clearTimeout(idleTimer);
     // An error response's body is never read; this closes its connection, which would otherwise keep the process alive.
