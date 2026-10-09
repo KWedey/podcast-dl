@@ -58,6 +58,11 @@ function summaryOf(stdout: string) {
   return { downloaded: count('Downloaded'), skipped: count('Skipped'), failed: count('Failed') };
 }
 
+/** Same day, different GUIDs, and identical once their titles are cut to 80 characters. */
+const LONG_TITLE = 'An Interview So Long That Its Title Runs Right Past The Eighty Character Filename Cut';
+const PARTS = [episode('2024-01-01', `${LONG_TITLE} (Part 1)`), episode('2024-01-01', `${LONG_TITLE} (Part 2)`)];
+const PARTS_BASE = `${SHOW_DIR}/2024-01-01_An Interview So Long That Its Title Runs Right Past The Eighty Character Filenam`;
+
 const audioRequests = (requests: readonly string[]) => requests.filter((path) => path.startsWith('/audio/'));
 
 describe('podcast-dl download', () => {
@@ -113,21 +118,33 @@ describe('podcast-dl download', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual([`${SHOW_DIR}/2024-01-01_${'a'.repeat(79)}🎙.mp3`]);
   });
 
-  it('keeps both episodes when their names collide after the 80-character cut', async () => {
+  it('keeps both episodes when their names collide, each under a short hash of its GUID', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
-    const prefix = 'An Interview So Long That Its Title Runs Right Past The Eighty Character Filename Cut';
-    const parts = [episode('2024-01-01', `${prefix} (Part 1)`), episode('2024-01-01', `${prefix} (Part 2)`)];
-    subscribe(ws, publishPodcast(server, SHOW, parts), SHOW);
+    subscribe(ws, publishPodcast(server, SHOW, PARTS), SHOW);
 
     const result = await runDownloadAndCheckState(ws);
 
     expectSuccess(result);
-    const base = `${SHOW_DIR}/2024-01-01_An Interview So Long That Its Title Runs Right Past The Eighty Character Filenam`;
-    const files = await listFiles(ws.downloadsDir);
-    expect(files).toEqual([`${base} (2).mp3`, `${base}.mp3`]);
-    const saved = files.map((file) => readFileSync(join(ws.downloadsDir, file)));
-    expect(saved).toEqual(expect.arrayContaining(parts.map((part) => part.body)));
+    expect(await listFiles(ws.downloadsDir)).toEqual([`${PARTS_BASE} (54687b).mp3`, `${PARTS_BASE} (8caf6a).mp3`]);
+    expect(readFileSync(join(ws.downloadsDir, `${PARTS_BASE} (54687b).mp3`))).toEqual(PARTS[0].body);
+    expect(readFileSync(join(ws.downloadsDir, `${PARTS_BASE} (8caf6a).mp3`))).toEqual(PARTS[1].body);
+  });
+
+  it('rewrites the same files instead of duplicating them when history is lost', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    const episodes = [dailyEpisode(1), ...PARTS];
+    subscribe(ws, publishPodcast(server, SHOW, episodes), SHOW);
+    expectSuccess(await runDownloadAndCheckState(ws));
+    const firstRunFiles = await listFiles(ws.downloadsDir);
+    rmSync(ws.historyPath);
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expectSuccess(result);
+    expect(await listFiles(ws.downloadsDir)).toEqual(firstRunFiles);
+    expect(episodes.map((ep) => server.hits(ep.audioPath))).toEqual([2, 2, 2]);
   });
 
   it('downloads an item the feed lists twice only once', async () => {

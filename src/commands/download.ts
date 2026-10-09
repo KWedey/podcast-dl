@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import pc from 'picocolors';
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { createFeedsStore } from '../state/feeds-store.js';
 import { createHistoryStore } from '../state/history-store.js';
@@ -12,6 +12,15 @@ import type { Episode } from '../types.js';
 
 /** Maximum number of new episodes to download per feed per run */
 const MAX_EPISODES_PER_FEED = 5;
+
+/** The first item for each GUID; feeds sometimes list an episode twice. */
+function uniqueByGuid(episodes: Episode[]): Episode[] {
+  const byGuid = new Map<string, Episode>();
+  for (const ep of episodes) {
+    if (!byGuid.has(ep.guid)) byGuid.set(ep.guid, ep);
+  }
+  return [...byGuid.values()];
+}
 
 /**
  * Filter episodes: remove already-downloaded, take 5 most recent, return oldest-first.
@@ -28,11 +37,8 @@ function filterEpisodes(
 ): { filtered: Episode[]; skipped: Episode[] } {
   const skipped: Episode[] = [];
   const candidates: Episode[] = [];
-  const seen = new Set<string>();
 
   for (const ep of episodes) {
-    if (seen.has(ep.guid)) continue;
-    seen.add(ep.guid);
     if (historyStore.isDownloaded(feedUrl, ep.guid)) {
       skipped.push(ep);
     } else {
@@ -54,15 +60,8 @@ function filterEpisodes(
   return { filtered: selected, skipped };
 }
 
-/**
- * Build the destination file path for an episode.
- *
- * @param downloadsDir - Base downloads directory
- * @param feedName - Podcast name (used for directory)
- * @param episode - Episode to build path for
- * @returns Absolute path like downloads/podcast-name/YYYY-MM-DD_Episode-Title.mp3
- */
-function buildEpisodePath(
+/** downloads/<podcast-slug>/<YYYY-MM-DD>_<Episode Title>.mp3, before collision handling. */
+function baseEpisodePath(
   downloadsDir: string,
   feedName: string,
   episode: Episode,
@@ -78,14 +77,27 @@ function buildEpisodePath(
 }
 
 /**
- * `path`, or `<name> (2).mp3`, `<name> (3).mp3`… when another episode already
- * owns that name: two titles can match once cut to 80 characters.
+ * Destination paths for a feed's episodes. Two items whose names collide within
+ * the feed (same day, titles equal once cut) each get a short hash of their GUID.
+ * The path depends only on the feed, never on what is on disk, so an episode
+ * maps to the same file on every run.
  */
-function firstFreePath(path: string): string {
-  const stem = path.slice(0, -'.mp3'.length);
-  let candidate = path;
-  for (let n = 2; existsSync(candidate); n++) candidate = `${stem} (${n}).mp3`;
-  return candidate;
+function episodePaths(
+  downloadsDir: string,
+  feedName: string,
+  episodes: Episode[],
+): (episode: Episode) => string {
+  const counts = new Map<string, number>();
+  for (const ep of episodes) {
+    const path = baseEpisodePath(downloadsDir, feedName, ep);
+    counts.set(path, (counts.get(path) ?? 0) + 1);
+  }
+  return (episode) => {
+    const path = baseEpisodePath(downloadsDir, feedName, episode);
+    if (counts.get(path) === 1) return path;
+    const hash = createHash('sha256').update(episode.guid).digest('hex').slice(0, 6);
+    return `${path.slice(0, -'.mp3'.length)} (${hash}).mp3`;
+  };
 }
 
 /**
@@ -138,8 +150,9 @@ export function registerDownloadCommand(program: Command): void {
 
         feedsReached++;
 
-        // Filter episodes
-        const { filtered, skipped } = filterEpisodes(episodes, feed.url, historyStore);
+        const unique = uniqueByGuid(episodes);
+        const pathOf = episodePaths(downloadsDir, feed.name, unique);
+        const { filtered, skipped } = filterEpisodes(unique, feed.url, historyStore);
 
         // Log skipped episodes
         for (const ep of skipped) {
@@ -155,7 +168,7 @@ export function registerDownloadCommand(program: Command): void {
 
         // Download each episode sequentially
         for (const episode of filtered) {
-          const destPath = firstFreePath(buildEpisodePath(downloadsDir, feed.name, episode));
+          const destPath = pathOf(episode);
 
           console.log(`  Downloading: ${episode.title}...`);
 
