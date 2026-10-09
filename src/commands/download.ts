@@ -132,6 +132,17 @@ export function registerDownloadCommand(program: Command): void {
       let totalFailed = 0;
       let feedsReached = 0;
       const failedEpisodes: Array<{ feed: string; title: string }> = [];
+      const unrecordedEpisodes: Array<{ feed: string; title: string }> = [];
+
+      /** Run a history write; on failure, return its error so the run can carry on. */
+      const recordInHistory = (write: () => void): string | undefined => {
+        try {
+          write();
+          return undefined;
+        } catch (error: unknown) {
+          return error instanceof Error ? error.message : 'Unknown error';
+        }
+      };
 
       // Process each feed sequentially
       for (const feed of feeds) {
@@ -180,14 +191,25 @@ export function registerDownloadCommand(program: Command): void {
           }
 
           if (result.success) {
-            historyStore.markDownloaded(feed.url, episode.guid);
-            console.log(pc.green(`  Downloaded: ${episode.title}`));
             totalDownloaded++;
+            const historyError = recordInHistory(() => historyStore.markDownloaded(feed.url, episode.guid));
+            if (historyError === undefined) {
+              console.log(pc.green(`  Downloaded: ${episode.title}`));
+            } else {
+              console.log(
+                pc.yellow(`  Downloaded: ${episode.title}, but could not record it in history (${historyError})`),
+              );
+              unrecordedEpisodes.push({ feed: feed.name, title: episode.title });
+            }
           } else {
-            historyStore.markFailed(feed.url, episode.guid);
-            console.log(pc.red(`  Failed: ${episode.title} (${result.error})`));
             totalFailed++;
             failedEpisodes.push({ feed: feed.name, title: episode.title });
+            console.log(pc.red(`  Failed: ${episode.title} (${result.error})`));
+            const historyError = recordInHistory(() => historyStore.markFailed(feed.url, episode.guid));
+            if (historyError !== undefined) {
+              console.log(pc.red(`    Could not record this failure in history (${historyError})`));
+              unrecordedEpisodes.push({ feed: feed.name, title: episode.title });
+            }
           }
         }
       }
@@ -210,6 +232,9 @@ export function registerDownloadCommand(program: Command): void {
       if (feedsFailed > 0) {
         console.log(`  Feeds failed: ${pc.red(String(feedsFailed))}`);
       }
+      if (unrecordedEpisodes.length > 0) {
+        console.log(`  History errors: ${pc.red(String(unrecordedEpisodes.length))}`);
+      }
 
       if (failedEpisodes.length > 0) {
         console.log(pc.red('\nFailed episodes:'));
@@ -218,8 +243,15 @@ export function registerDownloadCommand(program: Command): void {
         }
       }
 
+      if (unrecordedEpisodes.length > 0) {
+        console.log(pc.yellow(`\nNot recorded in ${getHistoryPath()}, so the next run fetches these again:`));
+        for (const ep of unrecordedEpisodes) {
+          console.log(`  - ${ep.feed}: ${ep.title}`);
+        }
+      }
+
       // A feed that could not be fetched is a failure too, so scripts never mistake an offline run for success
-      if (totalFailed > 0 || feedsFailed > 0) {
+      if (totalFailed > 0 || feedsFailed > 0 || unrecordedEpisodes.length > 0) {
         process.exit(1);
       }
     });
