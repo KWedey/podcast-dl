@@ -42,6 +42,7 @@ describe('parseFeedDate', () => {
     ['an unknown zone name', 'Mon, 01 Jan 2024 10:00:00 XYZT'],
     ['an ambiguous zone name (IST is India, Ireland or Israel)', 'Mon, 01 Jan 2024 10:00:00 IST'],
     ['a military zone letter', 'Mon, 01 Jan 2024 10:00:00 M'],
+    ['a zone word that names a built-in object property', 'Mon, 01 Jan 2024 10:00:00 constructor'],
     ['no zone at all', 'Mon, 01 Jan 2024 10:00:00'],
   ])('reads %s as UTC, as RFC 2822 says, never as machine-local time', (_case, text) => {
     expect(parseFeedDate(text)).toBe('2024-01-01T10:00:00.000Z');
