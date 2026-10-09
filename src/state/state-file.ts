@@ -47,8 +47,13 @@ export function readStateFile<T>(
   return state;
 }
 
-function unusableStateFile(filePath: string, reason: string): Error {
-  return new Error(
+/** A state file the user has to fix or move. Its message says all they need, so no stack trace. */
+export class StateFileError extends Error {
+  override name = 'StateFileError';
+}
+
+function unusableStateFile(filePath: string, reason: string): StateFileError {
+  return new StateFileError(
     `Cannot read ${filePath}: ${reason}. podcast-dl will not overwrite it; fix or move the file, then run again.`,
   );
 }
