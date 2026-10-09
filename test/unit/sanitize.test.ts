@@ -52,6 +52,13 @@ describe('sanitizeDirName', () => {
     expect(sanitizeDirName(':::')).toBe('unknown-podcast');
   });
 
+  it.each(['CON', 'Aux', 'nul', 'PRN', 'COM1', 'lpt9'])(
+    'never produces the Windows device name %j, which a FAT32 player read on Windows cannot open',
+    (name) => {
+      expect(sanitizeDirName(name)).toBe(`${name.toLowerCase()}-podcast`);
+    },
+  );
+
   it('caps length at 100 characters', () => {
     expect(sanitizeDirName('x'.repeat(150))).toHaveLength(100);
   });
