@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import pc from 'picocolors';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createFeedsStore } from '../state/feeds-store.js';
 import { createHistoryStore } from '../state/history-store.js';
@@ -27,8 +28,11 @@ function filterEpisodes(
 ): { filtered: Episode[]; skipped: Episode[] } {
   const skipped: Episode[] = [];
   const candidates: Episode[] = [];
+  const seen = new Set<string>();
 
   for (const ep of episodes) {
+    if (seen.has(ep.guid)) continue;
+    seen.add(ep.guid);
     if (historyStore.isDownloaded(feedUrl, ep.guid)) {
       skipped.push(ep);
     } else {
@@ -71,6 +75,17 @@ function buildEpisodePath(
   const sanitizedTitle = Array.from(sanitizeFilename(episode.title)).slice(0, 80).join('');
   const filename = `${datePrefix}_${sanitizedTitle}.mp3`;
   return join(downloadsDir, dirName, filename);
+}
+
+/**
+ * `path`, or `<name> (2).mp3`, `<name> (3).mp3`… when another episode already
+ * owns that name: two titles can match once cut to 80 characters.
+ */
+function firstFreePath(path: string): string {
+  const stem = path.slice(0, -'.mp3'.length);
+  let candidate = path;
+  for (let n = 2; existsSync(candidate); n++) candidate = `${stem} (${n}).mp3`;
+  return candidate;
 }
 
 /**
@@ -140,7 +155,7 @@ export function registerDownloadCommand(program: Command): void {
 
         // Download each episode sequentially
         for (const episode of filtered) {
-          const destPath = buildEpisodePath(downloadsDir, feed.name, episode);
+          const destPath = firstFreePath(buildEpisodePath(downloadsDir, feed.name, episode));
 
           console.log(`  Downloading: ${episode.title}...`);
 

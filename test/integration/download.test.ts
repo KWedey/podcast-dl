@@ -112,6 +112,36 @@ describe('podcast-dl download', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual([`${SHOW_DIR}/2024-01-01_${'a'.repeat(79)}🎙.mp3`]);
   });
 
+  it('keeps both episodes when their names collide after the 80-character cut', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    const prefix = 'An Interview So Long That Its Title Runs Right Past The Eighty Character Filename Cut';
+    const parts = [episode('2024-01-01', `${prefix} (Part 1)`), episode('2024-01-01', `${prefix} (Part 2)`)];
+    subscribe(ws, publishPodcast(server, SHOW, parts), SHOW);
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expectSuccess(result);
+    const base = `${SHOW_DIR}/2024-01-01_An Interview So Long That Its Title Runs Right Past The Eighty Character Filenam`;
+    const files = await listFiles(ws.downloadsDir);
+    expect(files).toEqual([`${base} (2).mp3`, `${base}.mp3`]);
+    const saved = files.map((file) => readFileSync(join(ws.downloadsDir, file)));
+    expect(saved).toEqual(expect.arrayContaining(parts.map((part) => part.body)));
+  });
+
+  it('downloads an item the feed lists twice only once', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    const repeated = dailyEpisode(1);
+    subscribe(ws, publishPodcast(server, SHOW, [repeated, repeated]), SHOW);
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expectSuccess(result);
+    expect(await listFiles(ws.downloadsDir)).toEqual([fileOf(1)]);
+    expect(server.hits(repeated.audioPath)).toBe(1);
+  });
+
   it('dates files by the UTC day of the pubDate, whatever the machine time zone', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
