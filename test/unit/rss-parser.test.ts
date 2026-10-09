@@ -57,6 +57,13 @@ describe('fetchEpisodes', () => {
     expect(episode.guid).toBe('https://cdn.example.test/7.mp3');
   });
 
+  it('reads a pubDate whose zone is an abbreviation Date.parse does not know', async () => {
+    const [episode] = await episodesOf([
+      { title: 'Summer', guid: 's', pubDate: 'Mon, 01 Jul 2024 10:00:00 BST', enclosure: mp3(1) },
+    ]);
+    expect(episode.publishedAt).toBe('2024-07-01T09:00:00.000Z');
+  });
+
   it.each([
     ['missing', undefined],
     ['unparseable', 'sometime last week'],
