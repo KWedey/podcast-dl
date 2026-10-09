@@ -89,8 +89,26 @@ describe('a corrupt feeds.json', () => {
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(`Cannot read ${ws.feedsPath}: not valid JSON`);
     expect(result.stderr).toContain('podcast-dl will not overwrite it');
+    expect(result.stderr).not.toMatch(/^\s+at /m);
     expect(readFileSync(ws.feedsPath, 'utf8')).toBe(corrupt);
     expect(server.requests).toEqual([]);
+  });
+});
+
+describe('an unexpected error', () => {
+  it('exits 1 and prints its stack trace, so the bug can be traced', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    server.route('/feed.xml', xml(PODCAST_XML));
+
+    const result = await runCli(['add', server.url('/feed.xml')], ws.dir, {
+      NODE_OPTIONS: `--import=${new URL('../fixtures/rename-fails.mjs', import.meta.url).href}`,
+      RENAME_FAILS_FOR: 'feeds.json',
+    });
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('EROFS: read-only file system');
+    expect(result.stderr).toMatch(/^\s+at .*atomic-write\.ts/m);
   });
 });
 

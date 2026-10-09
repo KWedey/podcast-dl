@@ -66,7 +66,8 @@ const PARTS_BASE = `${SHOW_DIR}/2024-01-01_An Interview So Long That Its Title R
 
 /** Makes every write to history.json fail in the CLI process, as on a full or read-only disk. */
 const HISTORY_WRITES_FAIL = {
-  NODE_OPTIONS: `--import=${new URL('../fixtures/history-writes-fail.mjs', import.meta.url).href}`,
+  NODE_OPTIONS: `--import=${new URL('../fixtures/rename-fails.mjs', import.meta.url).href}`,
+  RENAME_FAILS_FOR: 'history.json',
 };
 
 const historyErrorsIn = (stdout: string) => stdout.match(/^\s+History errors:\s+(\d+)$/m)?.[1];
@@ -94,6 +95,7 @@ describe('podcast-dl download', () => {
 
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(`Cannot read ${ws.historyPath}: not valid JSON`);
+    expect(result.stderr).not.toMatch(/^\s+at /m);
     expect(readFileSync(ws.historyPath, 'utf8')).toBe(corrupt);
     expect(server.requests).toEqual([]);
     expect(await listFiles(ws.downloadsDir)).toEqual([]);
