@@ -62,7 +62,7 @@ For each subscribed feed:
 - Saves to `downloads/<podcast-name>/<YYYY-MM-DD>_<Episode Title>.mp3`
 - Tracks downloads by GUID so episodes are never re-downloaded
 - Retries previously failed downloads automatically
-- Exits 1 if any feed or episode failed, so scripts can tell
+- Exits 1 if any feed or episode failed, or a download could not be recorded in history, so scripts can tell
 
 ### Example workflow
 

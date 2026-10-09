@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { expectSuccess, runCli, startCli, type ProcessResult } from '../helpers/cli.js';
@@ -63,6 +63,13 @@ function summaryOf(stdout: string) {
 const LONG_TITLE = 'An Interview So Long That Its Title Runs Right Past The Eighty Character Filename Cut';
 const PARTS = [episode('2024-01-01', `${LONG_TITLE} (Part 1)`), episode('2024-01-01', `${LONG_TITLE} (Part 2)`)];
 const PARTS_BASE = `${SHOW_DIR}/2024-01-01_An Interview So Long That Its Title Runs Right Past The Eighty Character Filenam`;
+
+/** Makes every write to history.json fail in the CLI process, as on a full or read-only disk. */
+const HISTORY_WRITES_FAIL = {
+  NODE_OPTIONS: `--import=${new URL('../fixtures/history-writes-fail.mjs', import.meta.url).href}`,
+};
+
+const historyErrorsIn = (stdout: string) => stdout.match(/^\s+History errors:\s+(\d+)$/m)?.[1];
 
 const audioRequests = (requests: readonly string[]) => requests.filter((path) => path.startsWith('/audio/'));
 
@@ -410,6 +417,50 @@ describe('podcast-dl download', () => {
       'beta-works/2024-01-02_Episode 2.mp3',
     ]);
     expect((await readHistory(ws))[blockedFeed]).toEqual([{ guid: dailyEpisode(1).guid, status: 'downloaded' }]);
+  });
+
+  it('keeps downloads it cannot record in history, exits 1, and the next run rewrites the same files', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    const feedUrl = publishPodcast(server, SHOW, [dailyEpisode(1), dailyEpisode(2)]);
+    subscribe(ws, feedUrl, SHOW);
+
+    const unrecorded = await runDownloadAndCheckState(ws, HISTORY_WRITES_FAIL);
+
+    expect(unrecorded.code).toBe(1);
+    expect(unrecorded.stdout).toContain('Downloaded: Episode 1, but could not record it in history (EROFS');
+    expect(summaryOf(unrecorded.stdout)).toEqual({ downloaded: 2, skipped: 0, failed: 0 });
+    expect(historyErrorsIn(unrecorded.stdout)).toBe('2');
+    expect(unrecorded.stdout).toContain(
+      `Not recorded in ${ws.historyPath}, so the next run fetches these again:\n` +
+        `  - ${SHOW}: Episode 1\n  - ${SHOW}: Episode 2\n`,
+    );
+    expect(await listFiles(ws.downloadsDir)).toEqual([fileOf(1), fileOf(2)]);
+    expect(existsSync(ws.historyPath)).toBe(false);
+
+    const recovery = await runDownloadAndCheckState(ws);
+
+    expectSuccess(recovery);
+    expect(await listFiles(ws.downloadsDir)).toEqual([fileOf(1), fileOf(2)]);
+    expect((await readHistory(ws))[feedUrl]).toEqual([
+      { guid: dailyEpisode(1).guid, status: 'downloaded' },
+      { guid: dailyEpisode(2).guid, status: 'downloaded' },
+    ]);
+  });
+
+  it('still reports a failed episode when its failure cannot be recorded either', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    server.route(dailyEpisode(1).audioPath, status(404));
+    subscribe(ws, publishPodcast(server, SHOW, [dailyEpisode(1)]), SHOW);
+
+    const result = await runDownloadAndCheckState(ws, HISTORY_WRITES_FAIL);
+
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain('Failed: Episode 1 (HTTP 404)');
+    expect(result.stdout).toContain('Could not record this failure in history (EROFS');
+    expect(summaryOf(result.stdout)).toEqual({ downloaded: 0, skipped: 0, failed: 1 });
+    expect(historyErrorsIn(result.stdout)).toBe('1');
   });
 
   it('survives being killed mid-download: state stays consistent and the next run finishes the job', async () => {
