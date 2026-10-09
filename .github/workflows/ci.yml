@@ -10,11 +10,12 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded PR pushes are cancelled; every main commit keeps its own result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
-    name: Typecheck and test
+    name: Typecheck, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -25,3 +26,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      # The tests run src/ through tsx; this proves the published dist/ build works too.
+      - name: Build and smoke-test the compiled CLI
+        run: |
+          npm run build
+          node dist/cli.js --help
