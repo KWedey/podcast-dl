@@ -61,8 +61,9 @@ export function parseFeedDate(text: string | null | undefined): string | null {
   const date = new Date(trimmed);
   if (isNaN(date.getTime())) return null;
   if (KNOWN_ZONE.test(trimmed)) return date.toISOString();
-  // No zone: the platform read it as local time. Keep the wall-clock time, as UTC.
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString();
+  // No zone: the platform read it as local time, which moves a time inside a DST gap. Marked GMT, it keeps the wall clock.
+  const utc = new Date(`${trimmed} GMT`);
+  return isNaN(utc.getTime()) ? null : utc.toISOString();
 }
 
 function zoneOffsetMinutes(zone: string | undefined): number {
