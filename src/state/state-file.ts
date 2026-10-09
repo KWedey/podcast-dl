@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 
 /**
- * Read a JSON state file, or return `empty()` when it does not exist yet.
+ * Read a JSON state file, or return `empty()` when it does not exist yet or
+ * holds nothing at all.
  *
- * A file that exists but cannot be used is an error, never an empty state:
+ * A file with content that cannot be used is an error, never an empty state:
  * reading it as empty would silently overwrite the user's subscriptions or
  * history on the next write.
  *
@@ -26,10 +27,15 @@ export function readStateFile<T>(
     throw unusableStateFile(filePath, error instanceof Error ? error.message : String(error));
   }
 
+  // Some editors save a byte order mark, which JSON.parse rejects.
+  const json = raw.replace(/^\uFEFF/, '');
+  if (json.trim() === '') {
+    return empty();
+  }
+
   let data: unknown;
   try {
-    // Some editors save a byte order mark, which JSON.parse rejects.
-    data = JSON.parse(raw.replace(/^\uFEFF/, ''));
+    data = JSON.parse(json);
   } catch {
     throw unusableStateFile(filePath, 'not valid JSON');
   }
