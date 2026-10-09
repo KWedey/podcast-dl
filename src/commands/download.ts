@@ -67,7 +67,8 @@ function buildEpisodePath(
   const datePrefix = episode.publishedAt
     ? new Date(episode.publishedAt).toISOString().slice(0, 10)
     : 'unknown-date';
-  const sanitizedTitle = sanitizeFilename(episode.title).slice(0, 80);
+  // Cut by code point: a UTF-16 slice can split an emoji into an invalid name.
+  const sanitizedTitle = Array.from(sanitizeFilename(episode.title)).slice(0, 80).join('');
   const filename = `${datePrefix}_${sanitizedTitle}.mp3`;
   return join(downloadsDir, dirName, filename);
 }
