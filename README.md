@@ -6,7 +6,7 @@ A CLI tool that downloads podcast episodes from RSS feeds as MP3 files, organize
 
 ## Requirements
 
-- Node.js >= 22
+- Node.js >= 22.12
 
 ## Install
 
@@ -58,10 +58,11 @@ npx tsx src/cli.ts download
 
 For each subscribed feed:
 - Fetches the RSS feed
-- Downloads up to 5 most recent un-downloaded episodes
+- Downloads up to 5 most recent un-downloaded episodes (a long back catalogue arrives 5 per run)
 - Saves to `downloads/<podcast-name>/<YYYY-MM-DD>_<Episode Title>.mp3`
 - Tracks downloads by GUID so episodes are never re-downloaded
 - Retries previously failed downloads automatically
+- Exits 1 if any feed or episode failed, so scripts can tell
 
 ### Example workflow
 
@@ -84,7 +85,7 @@ npx tsx src/cli.ts download
 
 ## How it works
 
-- **State** is stored in `data/feeds.json` and `data/history.json` (project-relative)
+- **State** is stored in `data/feeds.json` and `data/history.json`, relative to the directory you run the command from
 - **Downloads** go to `downloads/<podcast-name>/<YYYY-MM-DD>_<Episode Title>.mp3`
 - Files use **atomic writes** (temp file + rename) so crashes never corrupt state
 - Filenames are **FAT32-safe** (no colons, slashes, or illegal characters)
