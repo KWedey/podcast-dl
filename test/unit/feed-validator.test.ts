@@ -23,6 +23,12 @@ describe('validateFeed', () => {
     await expect(validateFeed(url)).resolves.toEqual({ title: 'The Test Show' });
   });
 
+  it('accepts a feed whose MP3 enclosures use the common audio/mp3 type', async () => {
+    const item = { ...MP3_ITEM, enclosure: { url: 'https://cdn.example.test/1.mp3', type: 'audio/mp3' } };
+    const url = await serveFeed({ title: 'Loose Types' }, [item]);
+    await expect(validateFeed(url)).resolves.toEqual({ title: 'Loose Types' });
+  });
+
   it('falls back to <itunes:title> when the channel has no <title>', async () => {
     const url = await serveFeed({ itunesTitle: 'iTunes Name' }, [MP3_ITEM]);
     await expect(validateFeed(url)).resolves.toEqual({ title: 'iTunes Name' });
@@ -37,7 +43,7 @@ describe('validateFeed', () => {
     const server = await startFixtureServer();
     server.route('/', html('<!doctype html><html><body>Welcome</body></html>'));
 
-    await expect(validateFeed(server.url('/'))).rejects.toThrow('URL is not a valid RSS or Atom feed');
+    await expect(validateFeed(server.url('/'))).rejects.toThrow('URL is not a valid RSS feed');
   });
 
   // Anything accepted here must yield at least one episode `download` can fetch.
@@ -50,7 +56,7 @@ describe('validateFeed', () => {
     await expect(validateFeed(url)).rejects.toThrow(NO_MP3_EPISODES);
   });
 
-  it('rejects an Atom feed, whose enclosures download cannot read', async () => {
+  it('rejects an Atom feed, which download cannot read', async () => {
     const server = await startFixtureServer();
     server.route(
       '/atom.xml',
@@ -60,7 +66,7 @@ describe('validateFeed', () => {
 <link rel="enclosure" type="audio/mpeg" href="https://cdn.example.test/1.mp3"/></entry></feed>`),
     );
 
-    await expect(validateFeed(server.url('/atom.xml'))).rejects.toThrow(NO_MP3_EPISODES);
+    await expect(validateFeed(server.url('/atom.xml'))).rejects.toThrow('Only RSS feeds are supported (got atom)');
   });
 
   it('reports the HTTP status when the server refuses', async () => {

@@ -26,7 +26,7 @@ describe('podcast-dl add', () => {
   });
 
   it.each<[string, Handler, string]>([
-    ['a web page', html('<!doctype html><html><body>Welcome</body></html>'), 'URL is not a valid RSS or Atom feed'],
+    ['a web page', html('<!doctype html><html><body>Welcome</body></html>'), 'URL is not a valid RSS feed'],
     ['an RSS feed with no audio', xml(rssFeed({ title: 'A Blog' }, [{ title: 'Post' }])), 'Feed has no MP3 episodes'],
     [
       'a feed with only non-MP3 audio, which download could never fetch',
