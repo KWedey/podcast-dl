@@ -206,6 +206,10 @@ export function registerDownloadCommand(program: Command): void {
       console.log(
         `  Failed:     ${totalFailed > 0 ? pc.red(String(totalFailed)) : pc.dim('0')}`,
       );
+      const feedsFailed = feeds.length - feedsReached;
+      if (feedsFailed > 0) {
+        console.log(`  Feeds failed: ${pc.red(String(feedsFailed))}`);
+      }
 
       if (failedEpisodes.length > 0) {
         console.log(pc.red('\nFailed episodes:'));
@@ -215,7 +219,7 @@ export function registerDownloadCommand(program: Command): void {
       }
 
       // A feed that could not be fetched is a failure too, so scripts never mistake an offline run for success
-      if (totalFailed > 0 || feedsReached < feeds.length) {
+      if (totalFailed > 0 || feedsFailed > 0) {
         process.exit(1);
       }
     });
