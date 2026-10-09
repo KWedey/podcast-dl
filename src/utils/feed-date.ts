@@ -76,7 +76,10 @@ function zoneOffsetMinutes(zone: string | undefined): number {
   return ZONE_OFFSET_MINUTES.get(zone.toLowerCase()) ?? 0;
 }
 
-/** Build the instant, or null if any field is out of range (31 Feb, 25:00). */
+/**
+ * Build the instant, or null if any field is out of range (31 Feb, 25:00).
+ * 24:00 is the end of the day, as ISO 8601 and Date.parse allow.
+ */
 function toIso(
   year: number,
   month: number,
@@ -88,8 +91,9 @@ function toIso(
   offsetMinutes: number,
 ): string | null {
   const [d, h, m, s, ms] = [day, hour, minute, second, millisecond].map(Number);
-  if (month < 0 || month > 11 || h > 23 || m > 59 || s > 60) return null;
-  const wallClock = new Date(Date.UTC(year, month, d, h, m, s, ms));
-  if (wallClock.getUTCMonth() !== month || wallClock.getUTCDate() !== d) return null;
-  return new Date(wallClock.getTime() - offsetMinutes * 60_000).toISOString();
+  const endOfDay = h === 24 && m === 0 && s === 0 && ms === 0;
+  if (month < 0 || month > 11 || (h > 23 && !endOfDay) || m > 59 || s > 60) return null;
+  const midnight = new Date(Date.UTC(year, month, d));
+  if (midnight.getUTCMonth() !== month || midnight.getUTCDate() !== d) return null;
+  return new Date(Date.UTC(year, month, d, h, m, s, ms) - offsetMinutes * 60_000).toISOString();
 }

@@ -62,6 +62,8 @@ describe('parseFeedDate', () => {
     ['with dashes before the year and no zone', '01-Jan-2024 10:00:00', '2024-01-01T10:00:00.000Z'],
     ['as dashed numbers with no zone', '01-01-2024 10:00', '2024-01-01T10:00:00.000Z'],
     ['with an hours-only offset', 'Mon, 01 Jan 2024 10:00:00 +05', '2024-01-01T05:00:00.000Z'],
+    ['at 24:00, the end of the day', 'Mon, 01 Jan 2024 24:00:00 GMT', '2024-01-02T00:00:00.000Z'],
+    ['as ISO 8601 at 24:00', '2024-01-01T24:00:00Z', '2024-01-02T00:00:00.000Z'],
   ])('reads a date %s', (_case, text, iso) => {
     expect(parseFeedDate(text)).toBe(iso);
   });
@@ -72,6 +74,7 @@ describe('parseFeedDate', () => {
     ['not a date', 'sometime last week'],
     ['a day that does not exist', 'Sat, 31 Feb 2024 10:00:00 GMT'],
     ['an hour that does not exist', 'Mon, 01 Jan 2024 25:00:00 GMT'],
+    ['past 24:00', 'Mon, 01 Jan 2024 24:30:00 GMT'],
   ])('returns null when the date is %s', (_case, text) => {
     expect(parseFeedDate(text)).toBeNull();
   });
