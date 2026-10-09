@@ -1,9 +1,8 @@
-import { parseFeed } from 'feedsmith';
-import { extractEpisodes } from './rss-parser.js';
+import { extractEpisodes, parseRssFeed } from './rss-parser.js';
 
 /**
  * Validate that a URL points to a podcast RSS feed with at least one MP3 episode.
- * Fetches the URL, parses it with feedsmith, and checks for downloadable episodes.
+ * Fetches the URL, parses it as RSS, and checks for downloadable episodes.
  *
  * @returns The podcast title extracted from the feed
  * @throws If the URL is unreachable, not a valid feed, or has no MP3 episodes
@@ -29,27 +28,15 @@ export async function validateFeed(url: string): Promise<{ title: string }> {
     throw new Error(`HTTP ${response.status} fetching ${url}`);
   }
 
-  // 2. Parse the response with feedsmith
-  const content = await response.text();
-  let parsed: ReturnType<typeof parseFeed>;
-  try {
-    parsed = parseFeed(content);
-  } catch {
-    throw new Error('URL is not a valid RSS feed');
-  }
-  if (parsed.format !== 'rss') {
-    throw new Error(`Only RSS feeds are supported (got ${parsed.format})`);
-  }
-
-  // 3. Same episode rules as `download`, so every accepted feed has something to fetch
-  if (extractEpisodes(parsed.feed).length === 0) {
+  // 2. Parse with the same rules `download` uses, so every accepted feed has something to fetch
+  const feed = parseRssFeed(await response.text());
+  if (extractEpisodes(feed).length === 0) {
     throw new Error(
       'Feed has no MP3 episodes (RSS <enclosure type="audio/mpeg">). Only MP3 podcast feeds are supported.',
     );
   }
 
-  // 4. Extract and return the podcast title
-  const feed = parsed.feed as Record<string, unknown>;
+  // 3. Extract and return the podcast title
   const itunes = feed.itunes as Record<string, unknown> | undefined;
   let title =
     (feed.title as string) ?? (itunes?.title as string) ?? 'Untitled Podcast';
