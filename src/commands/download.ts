@@ -62,19 +62,14 @@ function filterEpisodes(
   return { filtered: selected, skipped };
 }
 
-/** downloads/<podcast-slug>/<YYYY-MM-DD>_<Episode Title>.mp3, before collision handling. */
-function baseEpisodePath(
-  downloadsDir: string,
-  feedName: string,
-  episode: Episode,
-): string {
-  const dirName = sanitizeDirName(feedName);
+/** <podcastDir>/<YYYY-MM-DD>_<Episode Title>.mp3, before collision handling. */
+function baseEpisodePath(podcastDir: string, episode: Episode): string {
   const datePrefix = episode.publishedAt
     ? new Date(episode.publishedAt).toISOString().slice(0, 10)
     : 'unknown-date';
   const sanitizedTitle = shortenTitle(sanitizeFilename(episode.title));
   const filename = `${datePrefix}_${sanitizedTitle}.mp3`;
-  return join(downloadsDir, dirName, filename);
+  return join(podcastDir, filename);
 }
 
 /**
@@ -88,13 +83,14 @@ function episodePaths(
   feedName: string,
   episodes: Episode[],
 ): (episode: Episode) => string {
+  const podcastDir = join(downloadsDir, sanitizeDirName(feedName));
   const counts = new Map<string, number>();
   for (const ep of episodes) {
-    const path = baseEpisodePath(downloadsDir, feedName, ep);
+    const path = baseEpisodePath(podcastDir, ep);
     counts.set(path, (counts.get(path) ?? 0) + 1);
   }
   return (episode) => {
-    const path = baseEpisodePath(downloadsDir, feedName, episode);
+    const path = baseEpisodePath(podcastDir, episode);
     if (counts.get(path) === 1) return path;
     const hash = createHash('sha256').update(episode.guid).digest('hex').slice(0, 6);
     return `${path.slice(0, -'.mp3'.length)} (${hash}).mp3`;
