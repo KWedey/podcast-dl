@@ -99,6 +99,19 @@ describe('podcast-dl download', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual(['late-night-qa-talk/2024-01-01_Ep 1- -Why- -Live- - 50-50 -.mp3']);
   });
 
+  it('cuts long titles to 80 characters without splitting an emoji', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    // The microphone emoji is two UTF-16 code units at positions 79-80.
+    const long = { ...dailyEpisode(1), title: `${'a'.repeat(79)}🎙 Interview with a guest` };
+    subscribe(ws, publishPodcast(server, SHOW, [long]), SHOW);
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expectSuccess(result);
+    expect(await listFiles(ws.downloadsDir)).toEqual([`${SHOW_DIR}/2024-01-01_${'a'.repeat(79)}🎙.mp3`]);
+  });
+
   it('dates files by the UTC day of the pubDate, whatever the machine time zone', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
