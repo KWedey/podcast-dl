@@ -202,8 +202,8 @@ export function registerDownloadCommand(program: Command): void {
         }
       }
 
-      // Exit non-zero on failures
-      if (totalFailed > 0) {
+      // A feed that could not be fetched is a failure too, so scripts never mistake an offline run for success
+      if (totalFailed > 0 || feedsReached < feeds.length) {
         process.exit(1);
       }
     });
