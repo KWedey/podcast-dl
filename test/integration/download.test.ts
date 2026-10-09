@@ -129,6 +129,20 @@ describe('podcast-dl download', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual(['late-night-qa-talk/2024-01-01_Ep 1- -Why- -Live- - 50-50 -.mp3']);
   });
 
+  it('keeps accented and non-Latin letters in podcast folder names', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    subscribe(ws, publishPodcast(server, 'Café Society', [dailyEpisode(1)], '/cafe.xml'), 'Café Society');
+    subscribe(ws, publishPodcast(server, 'ラジオ深夜便', [dailyEpisode(2)], '/radio.xml'), 'ラジオ深夜便');
+
+    expectSuccess(await runDownloadAndCheckState(ws));
+
+    expect(await listFiles(ws.downloadsDir)).toEqual([
+      'café-society/2024-01-01_Episode 1.mp3',
+      'ラジオ深夜便/2024-01-02_Episode 2.mp3',
+    ]);
+  });
+
   it('cuts long titles to 80 characters without splitting an emoji', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
