@@ -1,5 +1,6 @@
 import { parseFeed } from 'feedsmith';
 import type { Episode } from '../types.js';
+import { parseFeedDate } from '../utils/feed-date.js';
 
 /** audio/mpeg is the registered MP3 type; the rest are spellings real feeds use. */
 const MP3_MIME_TYPES = new Set(['audio/mpeg', 'audio/mp3', 'audio/mpeg3', 'audio/x-mp3', 'audio/x-mpeg']);
@@ -76,20 +77,9 @@ export function extractEpisodes(feed: Record<string, unknown>): Episode[] {
       title,
       audioUrl: audioEnclosure.url,
       mimeType: audioEnclosure.type ?? 'audio/mpeg',
-      publishedAt: parsePubDate(item.pubDate as string | undefined),
+      publishedAt: parseFeedDate(item.pubDate as string | undefined),
     });
   }
 
   return episodes;
-}
-
-/**
- * Parse an RSS pubDate string into an ISO 8601 string.
- * Returns null if the date is missing or invalid.
- */
-function parsePubDate(pubDate: string | undefined | null): string | null {
-  if (!pubDate) return null;
-  const date = new Date(pubDate);
-  if (isNaN(date.getTime())) return null;
-  return date.toISOString();
 }

@@ -327,6 +327,46 @@ describe('podcast-dl download', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual([...[1, 2, 3, 4, 5].map(fileOf), `${SHOW_DIR}/unknown-date_Bonus.mp3`]);
   });
 
+  it('ranks undated episodes by their place in the feed, newest first, so every run picks the same ones', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    const undated = [1, 2, 3, 4, 5, 6, 7].map((n) => ({
+      ...episode('2024-01-01', `Undated ${n}`),
+      pubDate: n % 2 === 0 ? 'sometime last week' : undefined,
+    }));
+    subscribe(ws, publishPodcast(server, SHOW, undated), SHOW);
+    const downloadOrder = (stdout: string) => [...stdout.matchAll(/Downloading: (.+)\.\.\.$/gm)].map((m) => m[1]);
+
+    const first = await runDownloadAndCheckState(ws);
+    const second = await runDownloadAndCheckState(ws);
+
+    expectSuccess(first);
+    expect(downloadOrder(first.stdout)).toEqual(['Undated 5', 'Undated 4', 'Undated 3', 'Undated 2', 'Undated 1']);
+    expectSuccess(second);
+    expect(downloadOrder(second.stdout)).toEqual(['Undated 7', 'Undated 6']);
+  });
+
+  it('dates and ranks an episode by a zone abbreviation such as BST', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    // 00:30 BST on 1 Jul is 23:30 UTC on 30 Jun: older than an episode at 00:00 UTC on 1 Jul.
+    const summer = { ...episode('2024-06-30', 'Summer Special'), pubDate: 'Mon, 01 Jul 2024 00:30:00 BST' };
+    const july = { ...episode('2024-07-01', 'July Show'), pubDate: 'Mon, 01 Jul 2024 00:00:00 GMT' };
+    subscribe(ws, publishPodcast(server, SHOW, [july, summer]), SHOW);
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expectSuccess(result);
+    expect([...result.stdout.matchAll(/Downloading: (.+)\.\.\.$/gm)].map((m) => m[1])).toEqual([
+      'Summer Special',
+      'July Show',
+    ]);
+    expect(await listFiles(ws.downloadsDir)).toEqual([
+      `${SHOW_DIR}/2024-06-30_Summer Special.mp3`,
+      `${SHOW_DIR}/2024-07-01_July Show.mp3`,
+    ]);
+  });
+
   it('retries a failed download once within the same run', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
