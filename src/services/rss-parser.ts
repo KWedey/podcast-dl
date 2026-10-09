@@ -29,12 +29,29 @@ export async function fetchEpisodes(url: string): Promise<Episode[]> {
   }
 
   const content = await response.text();
-  return extractEpisodes(parseFeed(content).feed);
+  return extractEpisodes(parseRssFeed(content));
+}
+
+/**
+ * Parse feed XML, accepting RSS only, because the episode rules read RSS items.
+ * @throws If the XML is not a feed, or is a feed in another format such as Atom
+ */
+export function parseRssFeed(xml: string): Record<string, unknown> {
+  let parsed: ReturnType<typeof parseFeed>;
+  try {
+    parsed = parseFeed(xml);
+  } catch {
+    throw new Error('URL is not a valid RSS feed');
+  }
+  if (parsed.format !== 'rss') {
+    throw new Error(`Only RSS feeds are supported (got ${parsed.format})`);
+  }
+  return parsed.feed as Record<string, unknown>;
 }
 
 /** Pull the downloadable episodes out of a parsed RSS feed: items with an MP3 enclosure. */
-export function extractEpisodes(feed: unknown): Episode[] {
-  const items = ((feed as Record<string, unknown>).items as Array<Record<string, unknown>>) ?? [];
+export function extractEpisodes(feed: Record<string, unknown>): Episode[] {
+  const items = (feed.items as Array<Record<string, unknown>>) ?? [];
 
   const episodes: Episode[] = [];
 

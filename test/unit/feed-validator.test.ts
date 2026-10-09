@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateFeed } from '../../src/services/feed-validator.js';
 import { deadHostUrl, html, startFixtureServer, status, xml } from '../helpers/fixture-server.js';
-import { rssFeed, type ChannelSpec, type ItemSpec } from '../helpers/rss.js';
+import { atomFeed, rssFeed, type ChannelSpec, type ItemSpec } from '../helpers/rss.js';
 
 const NO_MP3_EPISODES = 'Feed has no MP3 episodes';
 
@@ -58,13 +58,7 @@ describe('validateFeed', () => {
 
   it('rejects an Atom feed, which download cannot read', async () => {
     const server = await startFixtureServer();
-    server.route(
-      '/atom.xml',
-      xml(`<?xml version="1.0"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Atom Show</title><id>urn:show</id><updated>2024-01-01T00:00:00Z</updated>
-<entry><title>Episode 1</title><id>urn:ep1</id><updated>2024-01-01T00:00:00Z</updated>
-<link rel="enclosure" type="audio/mpeg" href="https://cdn.example.test/1.mp3"/></entry></feed>`),
-    );
+    server.route('/atom.xml', xml(atomFeed('Atom Show', 'https://cdn.example.test/1.mp3')));
 
     await expect(validateFeed(server.url('/atom.xml'))).rejects.toThrow('Only RSS feeds are supported (got atom)');
   });

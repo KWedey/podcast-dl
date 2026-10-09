@@ -5,13 +5,14 @@ import { expectSuccess, runCli, startCli, type ProcessResult } from '../helpers/
 import {
   audio,
   deadHostUrl,
+  xml,
   dropMidStream,
   sequence,
   stallMidStream,
   startFixtureServer,
   status,
 } from '../helpers/fixture-server.js';
-import { dailyEpisode, episode, publishPodcast } from '../helpers/rss.js';
+import { atomFeed, dailyEpisode, episode, publishPodcast } from '../helpers/rss.js';
 import {
   createWorkspace,
   expectStateIntact,
@@ -337,6 +338,18 @@ describe('podcast-dl download', () => {
     expect(result.code).toBe(1);
     expect(result.stdout).toContain('Error fetching feed: HTTP 500 fetching feed');
     expect(await listFiles(ws.downloadsDir)).toEqual(['beta-works/2024-01-01_Episode 1.mp3']);
+  });
+
+  it('fails a subscribed feed that has switched to a format it cannot read', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    server.route('/feed.xml', xml(atomFeed(SHOW, server.url('/audio/episode-1.mp3'))));
+    subscribe(ws, server.url('/feed.xml'), SHOW);
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain('Error fetching feed: Only RSS feeds are supported (got atom)');
   });
 
   it('exits 1 with a connection hint when no feed can be reached', async () => {

@@ -47,6 +47,14 @@ ${itemXml.join('\n')}
 </rss>`;
 }
 
+/** An Atom feed with one MP3 enclosure: a real podcast, in a format the CLI does not read. */
+export function atomFeed(title: string, audioUrl: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>${escapeXml(title)}</title><id>urn:show</id><updated>2024-01-01T00:00:00Z</updated>
+<entry><title>Episode 1</title><id>urn:ep1</id><updated>2024-01-01T00:00:00Z</updated>
+<link rel="enclosure" type="audio/mpeg" href="${escapeXml(audioUrl)}"/></entry></feed>`;
+}
+
 /** Bytes that are unique per label, so a test can prove which episode landed in which file. */
 export function fakeMp3(label: string): Buffer {
   const id3Header = Buffer.from([0x49, 0x44, 0x33, 0x04, 0, 0, 0, 0, 0, 0]);
