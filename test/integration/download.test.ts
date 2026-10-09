@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { expectSuccess, runCli, startCli, type ProcessResult } from '../helpers/cli.js';
 import {
   audio,
+  deadHostUrl,
   dropMidStream,
   sequence,
   stallMidStream,
@@ -294,7 +295,7 @@ describe('podcast-dl download', () => {
     expect((await readHistory(ws))[feedUrl]).toContainEqual({ guid: flaky.guid, status: 'downloaded' });
   });
 
-  it('reports a feed it cannot fetch and still downloads the other feeds', async () => {
+  it('reports a feed it cannot fetch, still downloads the others, and exits 1', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
     server.route('/broken.xml', status(500));
@@ -303,8 +304,20 @@ describe('podcast-dl download', () => {
 
     const result = await runDownloadAndCheckState(ws);
 
+    expect(result.code).toBe(1);
     expect(result.stdout).toContain('Error fetching feed: HTTP 500 fetching feed');
     expect(await listFiles(ws.downloadsDir)).toEqual(['beta-works/2024-01-01_Episode 1.mp3']);
+  });
+
+  it('exits 1 with a connection hint when no feed can be reached', async () => {
+    const ws = await createWorkspace();
+    subscribe(ws, await deadHostUrl('/alpha.xml'), 'Alpha');
+    subscribe(ws, await deadHostUrl('/beta.xml'), 'Beta');
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain('No feeds could be reached -- check your connection');
   });
 
   it('fails an episode it cannot save without aborting the run, and retries it next run', async () => {
