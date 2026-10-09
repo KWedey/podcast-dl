@@ -337,6 +337,7 @@ describe('podcast-dl download', () => {
 
     expect(result.code).toBe(1);
     expect(result.stdout).toContain('Error fetching feed: HTTP 500 fetching feed');
+    expect(result.stdout).toMatch(/^\s+Feeds failed:\s+1$/m);
     expect(await listFiles(ws.downloadsDir)).toEqual(['beta-works/2024-01-01_Episode 1.mp3']);
   });
 
