@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { expectSuccess, runCli } from '../helpers/cli.js';
 import { html, startFixtureServer, xml, type Handler } from '../helpers/fixture-server.js';
@@ -71,6 +71,26 @@ describe('podcast-dl add', () => {
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(message);
     expect(existsSync(ws.feedsPath)).toBe(false);
+  });
+});
+
+describe('a corrupt feeds.json', () => {
+  it.each([['add'], ['list'], ['remove']])('stops %s with an error naming the file, and leaves it untouched', async (command) => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    server.route('/feed.xml', xml(PODCAST_XML));
+    mkdirSync(ws.dataDir, { recursive: true });
+    const corrupt = '[{"url": "https://example.test/daily.xml", "name": "The Da';
+    writeFileSync(ws.feedsPath, corrupt);
+    const args = { add: ['add', server.url('/feed.xml')], list: ['list'], remove: ['remove', 'The Daily'] }[command]!;
+
+    const result = await runCli(args, ws.dir);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(`Cannot read ${ws.feedsPath}: not valid JSON`);
+    expect(result.stderr).toContain('podcast-dl will not overwrite it');
+    expect(readFileSync(ws.feedsPath, 'utf8')).toBe(corrupt);
+    expect(server.requests).toEqual([]);
   });
 });
 

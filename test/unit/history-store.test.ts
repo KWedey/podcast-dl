@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createHistoryStore } from '../../src/state/history-store.js';
 import { createWorkspace, readHistory } from '../helpers/workspace.js';
@@ -63,11 +63,26 @@ describe('history store', () => {
     expect(history.isDownloaded(FEED, 'old-2')).toBe(true);
   });
 
-  it('treats a corrupt state file as empty instead of crashing', async () => {
+  it('reads a feed that mixes legacy GUIDs with current entries', async () => {
     const ws = await createWorkspace();
     mkdirSync(ws.dataDir, { recursive: true });
-    writeFileSync(ws.historyPath, '{"https://exa');
+    writeFileSync(ws.historyPath, JSON.stringify({ [FEED]: [{ guid: 'new-1', status: 'failed' }, 'old-1'] }));
 
-    expect(createHistoryStore(ws.historyPath).isDownloaded(FEED, 'guid-1')).toBe(false);
+    const history = createHistoryStore(ws.historyPath);
+    expect(history.isFailed(FEED, 'new-1')).toBe(true);
+    expect(history.isDownloaded(FEED, 'old-1')).toBe(true);
+  });
+
+  it.each([
+    ['is not valid JSON', '{"https://exa', 'not valid JSON'],
+    ['is JSON but not a history map', '["guid-1"]', 'expected an object of feed URLs to episode lists'],
+    ['has an entry with an unknown status', '{"https://example.test/feed.xml": [{"guid": "a", "status": "queued"}]}', 'expected an object of feed URLs to episode lists'],
+  ])('refuses a state file that %s, naming it, and leaves it untouched', async (_case, content, reason) => {
+    const ws = await createWorkspace();
+    mkdirSync(ws.dataDir, { recursive: true });
+    writeFileSync(ws.historyPath, content);
+
+    expect(() => createHistoryStore(ws.historyPath)).toThrow(`Cannot read ${ws.historyPath}: ${reason}`);
+    expect(readFileSync(ws.historyPath, 'utf8')).toBe(content);
   });
 });
