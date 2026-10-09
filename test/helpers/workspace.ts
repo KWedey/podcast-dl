@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { expect, onTestFinished } from 'vitest';
@@ -19,7 +19,8 @@ export interface Workspace {
  * A failed test keeps it and prints its path, so the evidence survives.
  */
 export async function createWorkspace(): Promise<Workspace> {
-  const dir = await mkdtemp(join(tmpdir(), 'podcast-dl-test-'));
+  // The real path is what the CLI sees as its cwd (macOS links /var to /private/var).
+  const dir = await realpath(await mkdtemp(join(tmpdir(), 'podcast-dl-test-')));
   onTestFinished(async ({ task }) => {
     if (task.result?.state === 'fail') {
       console.error(`Kept workspace of failed test "${task.name}": ${dir}`);

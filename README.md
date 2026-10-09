@@ -88,6 +88,7 @@ npx tsx src/cli.ts download
 - **State** is stored in `data/feeds.json` and `data/history.json`, relative to the directory you run the command from
 - **Downloads** go to `downloads/<podcast-name>/<YYYY-MM-DD>_<Episode Title>.mp3`
 - Files use **atomic writes** (temp file + rename) so crashes never corrupt state
+- A state file that is damaged (say, hand-edited into invalid JSON) stops every command with an error naming the file; podcast-dl never overwrites it
 - Filenames are **FAT32-safe** (no colons, slashes, or illegal characters)
 - Downloads **stream to disk** without buffering entire files in memory
 - Incomplete downloads use a temp file and are only renamed on success

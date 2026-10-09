@@ -44,11 +44,23 @@ describe('feeds store', () => {
     expect(readFileSync(ws.feedsPath, 'utf8')).toBe(before);
   });
 
-  it('treats a corrupt state file as empty instead of crashing', async () => {
+  it('refuses a state path that exists but cannot be read as a file, naming it', async () => {
+    const ws = await createWorkspace();
+    mkdirSync(ws.feedsPath, { recursive: true });
+
+    expect(() => createFeedsStore(ws.feedsPath)).toThrow(`Cannot read ${ws.feedsPath}: EISDIR`);
+  });
+
+  it.each([
+    ['is not valid JSON', '[{"url": "https://exa', 'not valid JSON'],
+    ['is JSON but not a list of feeds', '{"url": "https://example.test/daily.xml"}', 'expected a list of feeds'],
+    ['lists a feed without a URL', '[{"name": "The Daily", "addedAt": "2024-01-01T00:00:00.000Z"}]', 'expected a list of feeds'],
+  ])('refuses a state file that %s, naming it, and leaves it untouched', async (_case, content, reason) => {
     const ws = await createWorkspace();
     mkdirSync(ws.dataDir, { recursive: true });
-    writeFileSync(ws.feedsPath, '[{"url": "https://exa');
+    writeFileSync(ws.feedsPath, content);
 
-    expect(createFeedsStore(ws.feedsPath).getAll()).toEqual([]);
+    expect(() => createFeedsStore(ws.feedsPath)).toThrow(`Cannot read ${ws.feedsPath}: ${reason}`);
+    expect(readFileSync(ws.feedsPath, 'utf8')).toBe(content);
   });
 });

@@ -1,50 +1,52 @@
-import { readFileSync, existsSync } from 'node:fs';
 import { atomicWriteSync } from './atomic-write.js';
+import { isRecord, readStateFile } from './state-file.js';
 import type { HistoryEntry, DownloadHistory } from '../types.js';
+
+/**
+ * Accepts the current format (HistoryEntry[] per feed) and migrates the old
+ * one (bare GUID strings, which all meant "downloaded").
+ */
+function decodeHistory(data: unknown): DownloadHistory | undefined {
+  if (!isRecord(data)) return undefined;
+  const history: DownloadHistory = {};
+  for (const [feedUrl, entries] of Object.entries(data)) {
+    if (!Array.isArray(entries)) return undefined;
+    const decoded: HistoryEntry[] = [];
+    for (const entry of entries) {
+      if (typeof entry === 'string') {
+        decoded.push({ guid: entry, status: 'downloaded' });
+      } else if (
+        isRecord(entry) &&
+        typeof entry.guid === 'string' &&
+        (entry.status === 'downloaded' || entry.status === 'failed')
+      ) {
+        decoded.push({ guid: entry.guid, status: entry.status });
+      } else {
+        return undefined;
+      }
+    }
+    history[feedUrl] = decoded;
+  }
+  return history;
+}
 
 /**
  * Create a history store for tracking downloaded and failed episode GUIDs.
  * Data is persisted to a JSON file using atomic writes for crash safety.
- * Corrupt or missing files are handled gracefully (return empty object).
- *
- * Supports transparent migration from old format (bare string arrays)
- * to new format (HistoryEntry[] with status field).
+ * A missing file is an empty history. A file that is there but unreadable
+ * makes this throw, naming the file, so it is never overwritten.
  *
  * IMPORTANT: This store NEVER checks the filesystem for MP3 files.
  * It only reads/writes its own JSON data file.
  */
 export function createHistoryStore(filePath: string) {
   function readAll(): DownloadHistory {
-    if (!existsSync(filePath)) {
-      return {};
-    }
-    try {
-      const raw = readFileSync(filePath, 'utf8');
-      const data = JSON.parse(raw) as Record<string, unknown>;
-
-      // Migrate: detect old format (bare string arrays) vs new format (HistoryEntry[])
-      const migrated: DownloadHistory = {};
-      for (const [feedUrl, entries] of Object.entries(data)) {
-        if (Array.isArray(entries)) {
-          if (entries.length === 0) {
-            migrated[feedUrl] = [];
-          } else if (typeof entries[0] === 'string') {
-            // Old format: bare GUID strings -> assume downloaded
-            migrated[feedUrl] = (entries as string[]).map((guid) => ({
-              guid,
-              status: 'downloaded' as const,
-            }));
-          } else {
-            // New format: already HistoryEntry[]
-            migrated[feedUrl] = entries as HistoryEntry[];
-          }
-        }
-      }
-      return migrated;
-    } catch {
-      // Corrupt JSON or read error -- return empty (Pitfall 3 recovery)
-      return {};
-    }
+    return readStateFile(
+      filePath,
+      () => ({}),
+      decodeHistory,
+      'an object of feed URLs to episode lists',
+    );
   }
 
   function writeAll(history: DownloadHistory): void {
@@ -72,6 +74,8 @@ export function createHistoryStore(filePath: string) {
     }
     writeAll(history);
   }
+
+  readAll();
 
   return {
     /** Check if a specific episode GUID has been downloaded for a feed */

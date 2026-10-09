@@ -76,6 +76,22 @@ describe('podcast-dl download', () => {
     expect(result.stdout).toContain('No feeds subscribed. Use "podcast-dl add <url>" to get started.');
   });
 
+  it('refuses to run on a corrupt history.json, and fetches or overwrites nothing', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    subscribe(ws, publishPodcast(server, SHOW, [dailyEpisode(1)]), SHOW);
+    const corrupt = '{"https://example.test/feed.xml": [{"guid": "a", "status": "downlo';
+    writeFileSync(ws.historyPath, corrupt);
+
+    const result = await runCli(['download'], ws.dir);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(`Cannot read ${ws.historyPath}: not valid JSON`);
+    expect(readFileSync(ws.historyPath, 'utf8')).toBe(corrupt);
+    expect(server.requests).toEqual([]);
+    expect(await listFiles(ws.downloadsDir)).toEqual([]);
+  });
+
   it('saves each episode to downloads/<podcast>/<date>_<title>.mp3 with the bytes the host served', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
