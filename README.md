@@ -90,6 +90,7 @@ npx tsx src/cli.ts download
 - Files use **atomic writes** (temp file + rename) so crashes never corrupt state
 - A state file that is damaged (say, hand-edited into invalid JSON) stops every command with an error naming the file; podcast-dl never overwrites it
 - Filenames are **FAT32-safe** (no colons, slashes, or illegal characters)
+- Podcast folders are lowercase with dashes and keep letters in any script (`Café Society` → `café-society`)
 - Downloads **stream to disk** without buffering entire files in memory
 - Incomplete downloads use a temp file and are only renamed on success
 

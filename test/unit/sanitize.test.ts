@@ -69,11 +69,36 @@ describe('sanitizeDirName', () => {
     expect(sanitizeDirName(name)).toBe(slug);
   });
 
-  it('falls back to a fixed name when nothing usable is left', () => {
-    expect(sanitizeDirName(':::')).toBe('unknown-podcast');
+  it.each([
+    ['Café Society', 'café-society'],
+    ['Ελληνικά Νέα', 'ελληνικά-νέα'],
+    ['Радио Свобода', 'радио-свобода'],
+    ['ラジオ深夜便', 'ラジオ深夜便'],
+    ['हिन्दी पॉडकास्ट', 'हिन्दी-पॉडकास्ट'],
+    ['Señor Café №1', 'señor-café-1'],
+  ])('keeps the letters, accents and marks of %j: %j', (name, slug) => {
+    expect(sanitizeDirName(name)).toBe(slug);
   });
 
-  it.each(['CON', 'Aux', 'nul', 'PRN', 'COM1', 'lpt9'])(
+  it('names a podcast the same whether its accents arrive composed or decomposed', () => {
+    expect(sanitizeDirName('Cafe\u0301 Society')).toBe('caf\u00e9-society');
+  });
+
+  it.each([':::', '🎙️ 🎧', '\u0301\u0301'])('falls back to a fixed name when %j leaves no letter or digit', (name) => {
+    expect(sanitizeDirName(name)).toBe('unknown-podcast');
+  });
+
+  it('keeps a long non-Latin name within 200 UTF-8 bytes, cutting between characters', () => {
+    const dir = sanitizeDirName('語'.repeat(100));
+    expect(dir).toBe('語'.repeat(66));
+    expect(Buffer.byteLength(dir)).toBeLessThanOrEqual(200);
+  });
+
+  it('never ends on a dash after cutting a long name', () => {
+    expect(sanitizeDirName(`${'a'.repeat(99)} b`)).toBe('a'.repeat(99));
+  });
+
+  it.each(['CON', 'Aux', 'nul', 'PRN', 'COM1', 'lpt9', 'COM¹', 'LPT³'])(
     'never produces the Windows device name %j, which a FAT32 player read on Windows cannot open',
     (name) => {
       expect(sanitizeDirName(name)).toBe(`${name.toLowerCase()}-podcast`);
