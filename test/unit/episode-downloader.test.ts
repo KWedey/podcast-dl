@@ -83,6 +83,31 @@ describe('downloadEpisode', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual([]);
   });
 
+  it('closes the connection of an error response it does not read, so the process can exit', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    let closed = false;
+    server.route('/ep.mp3', (req, res) => {
+      req.socket.on('close', () => (closed = true));
+      res.writeHead(503, { 'Content-Type': 'text/html' });
+      // Larger than the client buffers, and never ended: only the client can close this connection.
+      res.write(Buffer.alloc(1024 * 1024, 'x'));
+    });
+    // Hold every response, as a busy run would: fetch also closes an unread body when the response is garbage-collected.
+    const held: Response[] = [];
+    const realFetch = globalThis.fetch;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (...args) => {
+      const response = await realFetch(...args);
+      held.push(response);
+      return response;
+    });
+
+    const result = await downloadEpisode(server.url('/ep.mp3'), join(ws.downloadsDir, 'show', 'ep.mp3'));
+
+    expect(result).toEqual({ success: false, error: 'HTTP 503' });
+    await until(() => closed);
+  });
+
   it('clears a partial file left by a killed run, even when this attempt fails', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();

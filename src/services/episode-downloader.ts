@@ -93,5 +93,7 @@ export async function downloadEpisode(
     return { success: false, error: message };
   } finally {
     clearTimeout(idleTimer);
+    // An error response's body is never read; this closes its connection, which would otherwise keep the process alive.
+    controller.abort();
   }
 }
