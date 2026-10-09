@@ -3,7 +3,7 @@
  * only the RFC 822 ones (UT, GMT and the North American zones). IST is left
  * out on purpose: it means India, Ireland or Israel.
  */
-const ZONE_OFFSET_MINUTES: Record<string, number> = {
+const ZONE_OFFSET_MINUTES = new Map<string, number>(Object.entries({
   ut: 0, utc: 0, gmt: 0, z: 0,
   est: -300, edt: -240, cst: -360, cdt: -300,
   mst: -420, mdt: -360, pst: -480, pdt: -420,
@@ -12,7 +12,7 @@ const ZONE_OFFSET_MINUTES: Record<string, number> = {
   wet: 0, west: 60, bst: 60, cet: 60, cest: 120, eet: 120, eest: 180, msk: 180,
   jst: 540, kst: 540, hkt: 480, sgt: 480,
   awst: 480, acst: 570, acdt: 630, aest: 600, aedt: 660, nzst: 720, nzdt: 780,
-};
+}));
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
@@ -69,7 +69,7 @@ function zoneOffsetMinutes(zone: string | undefined): number {
     const [, sign, hours, minutes = '0'] = offset;
     return (sign === '-' ? -1 : 1) * (Number(hours) * 60 + Number(minutes));
   }
-  return ZONE_OFFSET_MINUTES[zone.toLowerCase()] ?? 0;
+  return ZONE_OFFSET_MINUTES.get(zone.toLowerCase()) ?? 0;
 }
 
 /** Build the instant, or null if any field is out of range (31 Feb, 25:00). */
