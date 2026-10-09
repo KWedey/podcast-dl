@@ -36,12 +36,14 @@ const MAX_DIR_CHARACTERS = 100;
  */
 const MAX_NAME_BYTES = 200;
 
+const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+
 /** Keep at most `maxCharacters` user-perceived characters and `maxBytes` UTF-8 bytes, never splitting one. */
 function cutGraphemes(text: string, maxCharacters: number, maxBytes: number): string {
   let result = '';
   let characters = 0;
   let bytes = 0;
-  for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)) {
+  for (const { segment } of graphemes.segment(text)) {
     bytes += Buffer.byteLength(segment);
     if (characters === maxCharacters || bytes > maxBytes) break;
     result += segment;
