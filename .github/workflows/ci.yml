@@ -9,20 +9,25 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  # Superseded PR pushes are cancelled; every main commit keeps its own result.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # A new PR push supersedes the last; each push to main gets its own group, so none is cancelled.
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   check:
-    name: Typecheck, test, build
+    name: Typecheck, test, build (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # The engines floor in package.json, and the latest 22.x.
+        node: ['22.12.0', '22']
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
       - run: npm run check
