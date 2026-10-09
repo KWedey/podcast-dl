@@ -30,7 +30,12 @@ describe('podcast-dl add', () => {
 
   it.each<[string, Handler, string]>([
     ['a web page', html('<!doctype html><html><body>Welcome</body></html>'), 'URL is not a valid RSS or Atom feed'],
-    ['an RSS feed with no audio', xml(rssFeed({ title: 'A Blog' }, [{ title: 'Post' }])), 'contains no audio enclosures'],
+    ['an RSS feed with no audio', xml(rssFeed({ title: 'A Blog' }, [{ title: 'Post' }])), 'Feed has no MP3 episodes'],
+    [
+      'a feed with only non-MP3 audio, which download could never fetch',
+      xml(rssFeed({ title: 'AAC Show' }, [{ title: 'Ep', enclosure: { url: 'https://cdn.example.test/1.m4a', type: 'audio/x-m4a' } }])),
+      'Feed has no MP3 episodes',
+    ],
   ])('rejects %s, exits 1, and saves nothing', async (_case, handler, message) => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();

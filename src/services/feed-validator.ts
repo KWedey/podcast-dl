@@ -1,11 +1,12 @@
 import { parseFeed } from 'feedsmith';
+import { extractEpisodes } from './rss-parser.js';
 
 /**
- * Validate that a URL points to a podcast RSS/Atom feed with audio enclosures.
- * Fetches the URL, parses it with feedsmith, and checks for audio content.
+ * Validate that a URL points to a podcast RSS feed with at least one MP3 episode.
+ * Fetches the URL, parses it with feedsmith, and checks for downloadable episodes.
  *
  * @returns The podcast title extracted from the feed
- * @throws If the URL is unreachable, not a valid feed, or has no audio enclosures
+ * @throws If the URL is unreachable, not a valid feed, or has no MP3 episodes
  */
 export async function validateFeed(url: string): Promise<{ title: string }> {
   // 1. Fetch the URL
@@ -37,41 +38,15 @@ export async function validateFeed(url: string): Promise<{ title: string }> {
     throw new Error('URL is not a valid RSS or Atom feed');
   }
 
-  // 3. Validate audio enclosures exist
-  const feed = parsed.feed as Record<string, unknown>;
-  const items = (feed.items as unknown[]) ?? (feed.entries as unknown[]) ?? [];
-
-  const hasAudio = items.some((item: unknown) => {
-    const entry = item as Record<string, unknown>;
-
-    // RSS: items have enclosures array
-    const enclosures = entry.enclosures as
-      | Array<{ type?: string }>
-      | undefined;
-    if (enclosures?.some((e) => e.type?.startsWith('audio/'))) {
-      return true;
-    }
-
-    // Atom: entries have links array
-    const links = entry.links as
-      | Array<{ type?: string; rel?: string }>
-      | undefined;
-    if (
-      links?.some((l) => l.type?.startsWith('audio/') && l.rel === 'enclosure')
-    ) {
-      return true;
-    }
-
-    return false;
-  });
-
-  if (!hasAudio) {
+  // 3. Require at least one episode the download command can fetch
+  if (extractEpisodes(parsed.feed).length === 0) {
     throw new Error(
-      'Feed is valid RSS but contains no audio enclosures. Only podcast feeds with audio content are supported.',
+      'Feed has no MP3 episodes (RSS <enclosure type="audio/mpeg">). Only MP3 podcast feeds are supported.',
     );
   }
 
   // 4. Extract and return the podcast title
+  const feed = parsed.feed as Record<string, unknown>;
   const itunes = feed.itunes as Record<string, unknown> | undefined;
   let title =
     (feed.title as string) ?? (itunes?.title as string) ?? 'Untitled Podcast';

@@ -22,8 +22,15 @@ export async function fetchEpisodes(url: string): Promise<Episode[]> {
   }
 
   const content = await response.text();
-  const { feed } = parseFeed(content);
+  return extractEpisodes(parseFeed(content).feed);
+}
 
+/**
+ * Pull the downloadable episodes out of a parsed feed: RSS items with an
+ * audio/mpeg enclosure. The feed validator uses this too, so `add` accepts
+ * exactly the feeds `download` can fetch from.
+ */
+export function extractEpisodes(feed: unknown): Episode[] {
   // feedsmith returns format-specific structure; access items from the parsed feed
   const rssFeed = feed as Record<string, unknown>;
   const items =
