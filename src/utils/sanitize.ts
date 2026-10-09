@@ -6,6 +6,9 @@ const MAX_FILENAME_LENGTH = 100;
 /** Character used to replace FAT32-illegal characters */
 const REPLACEMENT_CHAR = '-';
 
+/** Windows cannot open a folder with one of these names, even on a FAT32 player. */
+const WINDOWS_DEVICE_NAME = /^(con|prn|aux|nul|com\d|lpt\d)$/;
+
 /**
  * Sanitize a string for use as a filename.
  * Removes FAT32-illegal characters and truncates to 100 characters.
@@ -42,5 +45,8 @@ export function sanitizeDirName(name: string): string {
     .replace(/^-+|-+$/g, '');   // trim leading/trailing dashes
 
   // Fallback for edge case where input is entirely illegal characters
-  return slug || 'unknown-podcast';
+  if (!slug) return 'unknown-podcast';
+
+  // filenamify suffixes device names, but the slug step strips that suffix again.
+  return WINDOWS_DEVICE_NAME.test(slug) ? `${slug}-podcast` : slug;
 }
