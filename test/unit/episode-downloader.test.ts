@@ -27,7 +27,7 @@ describe('downloadEpisode', () => {
     await stalled.sent;
 
     // Bytes reach disk before the response ends (streamed, not buffered), but only under the temp name.
-    await vi.waitFor(() => expect(readFileSync(`${dest}.tmp`)).toEqual(firstChunk), { timeout: 5_000 });
+    await vi.waitFor(() => expect(readFileSync(`${dest}.tmp`)).toEqual(firstChunk), { timeout: 2_000 });
     expect(existsSync(dest)).toBe(false);
 
     stalled.finish();
@@ -57,8 +57,7 @@ describe('downloadEpisode', () => {
 
     const result = await downloadEpisode(server.url('/ep.mp3'), join(ws.downloadsDir, 'show', 'ep.mp3'));
 
-    expect(result.success).toBe(false);
-    expect(result.error).not.toMatch(/^HTTP/);
+    expect(result).toEqual({ success: false, error: 'terminated' });
     expect(server.hits('/ep.mp3')).toBe(1);
     expect(await listFiles(ws.downloadsDir)).toEqual([]);
   });

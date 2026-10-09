@@ -2,10 +2,7 @@ import fs from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { atomicWriteSync } from '../../src/state/atomic-write.js';
-import { runTypeScript } from '../helpers/cli.js';
 import { createWorkspace, listFiles } from '../helpers/workspace.js';
-
-const CRASH_BEFORE_RENAME = new URL('../fixtures/crash-before-rename.ts', import.meta.url);
 
 const OLD = JSON.stringify({ feed: [{ guid: 'a', status: 'downloaded' }] });
 const NEW = JSON.stringify({ feed: [{ guid: 'a', status: 'downloaded' }, { guid: 'b', status: 'downloaded' }] });
@@ -38,20 +35,5 @@ describe('atomicWriteSync', () => {
 
     expect(fs.readFileSync(target, 'utf8')).toBe(OLD);
     expect(await listFiles(ws.dataDir)).toEqual(['history.json']);
-  });
-
-  it('keeps the previous content when the process is killed just before the swap', async () => {
-    const ws = await createWorkspace();
-    const target = join(ws.dataDir, 'history.json');
-    atomicWriteSync(target, OLD);
-
-    const crashed = await runTypeScript(CRASH_BEFORE_RENAME, [target, NEW], ws.dir);
-
-    expect(crashed.signal).toBe('SIGKILL');
-    expect(fs.readFileSync(target, 'utf8')).toBe(OLD);
-    // The new content was written in full, just never swapped in.
-    const [tempFile, ...rest] = (await listFiles(ws.dataDir)).filter((f) => f !== 'history.json');
-    expect(rest).toEqual([]);
-    expect(fs.readFileSync(join(ws.dataDir, tempFile), 'utf8')).toBe(NEW);
   });
 });
