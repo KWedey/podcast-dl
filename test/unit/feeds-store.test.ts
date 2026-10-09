@@ -47,7 +47,7 @@ describe('feeds store', () => {
   it('reads a state file an editor saved with a UTF-8 byte order mark', async () => {
     const ws = await createWorkspace();
     mkdirSync(ws.dataDir, { recursive: true });
-    writeFileSync(ws.feedsPath, `﻿${JSON.stringify([daily])}`);
+    writeFileSync(ws.feedsPath, `\uFEFF${JSON.stringify([daily])}`);
 
     expect(createFeedsStore(ws.feedsPath).getAll()).toEqual([daily]);
   });
