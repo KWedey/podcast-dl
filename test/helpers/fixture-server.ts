@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { onTestFinished } from 'vitest';
 
@@ -9,27 +9,18 @@ export interface FixtureServer {
   url(path: string): string;
   /** Install or replace the handler for `path`. Unrouted paths get 404. */
   route(path: string, handler: Handler): void;
+  isRouted(path: string): boolean;
   /** How many requests `path` has received. */
   hits(path: string): number;
   /** Paths in arrival order. */
   readonly requests: readonly string[];
 }
 
-export async function startFixtureServer(): Promise<FixtureServer> {
-  const routes = new Map<string, Handler>();
-  const requests: string[] = [];
-
-  const server = createServer((req, res) => {
-    const path = new URL(req.url ?? '/', 'http://fixture').pathname;
-    requests.push(path);
-    const handler = routes.get(path);
-    if (handler) handler(req, res);
-    else res.writeHead(404).end();
+async function listen(server: Server): Promise<number> {
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
   });
-
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address() as AddressInfo;
-
   onTestFinished(
     () =>
       new Promise<void>((resolve) => {
@@ -37,22 +28,40 @@ export async function startFixtureServer(): Promise<FixtureServer> {
         server.close(() => resolve());
       }),
   );
+  return (server.address() as AddressInfo).port;
+}
+
+export async function startFixtureServer(): Promise<FixtureServer> {
+  const routes = new Map<string, Handler>();
+  const requests: string[] = [];
+
+  const port = await listen(
+    createServer((req, res) => {
+      const path = new URL(req.url ?? '/', 'http://fixture').pathname;
+      requests.push(path);
+      const handler = routes.get(path);
+      if (handler) handler(req, res);
+      else res.writeHead(404).end();
+    }),
+  );
 
   return {
     url: (path) => `http://127.0.0.1:${port}${path}`,
     route: (path, handler) => void routes.set(path, handler),
+    isRouted: (path) => routes.has(path),
     hits: (path) => requests.filter((p) => p === path).length,
     requests,
   };
 }
 
-/** A URL on a port nothing is listening on: the connection is refused. */
-export async function unreachableUrl(path: string): Promise<string> {
+/**
+ * A URL whose host drops every connection before answering. The port stays
+ * held for the whole test, so no other server can take it over.
+ */
+export async function deadHostUrl(path: string): Promise<string> {
   const server = createServer();
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const { port } = server.address() as AddressInfo;
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  return `http://127.0.0.1:${port}${path}`;
+  server.on('connection', (socket) => socket.destroy());
+  return `http://127.0.0.1:${await listen(server)}${path}`;
 }
 
 export function xml(body: string): Handler {
@@ -76,6 +85,12 @@ export function audio(body: Buffer): Handler {
 export function status(code: number): Handler {
   return (_req, res) => {
     res.writeHead(code).end();
+  };
+}
+
+export function redirect(location: string, code: 301 | 302 | 307 | 308 = 302): Handler {
+  return (_req, res) => {
+    res.writeHead(code, { Location: location }).end();
   };
 }
 

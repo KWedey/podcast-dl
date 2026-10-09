@@ -38,6 +38,12 @@ describe('fetchEpisodes', () => {
     expect(episodes.map((e) => e.guid)).toEqual(['mp3']);
   });
 
+  it('picks the MP3 when an item has several enclosures', async () => {
+    const cover = { url: 'https://cdn.example.test/cover.jpg', type: 'image/jpeg' };
+    const [episode] = await episodesOf([{ title: 'Two enclosures', guid: 'two', enclosure: [cover, mp3(2)] }]);
+    expect(episode.audioUrl).toBe('https://cdn.example.test/2.mp3');
+  });
+
   it('uses the enclosure URL as the GUID when an item has none, so tracking stays stable', async () => {
     const [episode] = await episodesOf([{ title: 'No GUID', enclosure: mp3(7) }]);
     expect(episode.guid).toBe('https://cdn.example.test/7.mp3');
