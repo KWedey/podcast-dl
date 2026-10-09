@@ -70,11 +70,11 @@ export interface FixtureEpisode {
   body: Buffer;
 }
 
-/** An episode published at noon UTC on `date` (YYYY-MM-DD). */
-export function episode(date: string, title: string): FixtureEpisode {
+/** An episode published at noon UTC on `date` (YYYY-MM-DD). The GUID defaults to one derived from the title. */
+export function episode(date: string, title: string, guid?: string): FixtureEpisode {
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return {
-    guid: `urn:test:${slug}`,
+    guid: guid ?? `urn:test:${slug}`,
     title,
     pubDate: new Date(`${date}T12:00:00Z`).toUTCString(),
     audioPath: `/audio/${slug}.mp3`,

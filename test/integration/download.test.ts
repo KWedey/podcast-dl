@@ -28,15 +28,15 @@ const SHOW_DIR = 'the-test-show';
 /** Where the CLI saves dailyEpisode(n) of SHOW, relative to downloads/. */
 const fileOf = (n: number) => `${SHOW_DIR}/2024-01-${String(n).padStart(2, '0')}_Episode ${n}.mp3`;
 
-/** Feed order, title order and date order all disagree, and the dates cross a year boundary. */
+/** Feed, title, GUID and date orders all disagree, and the dates cross a year boundary. */
 const CATALOGUE = [
-  episode('2024-01-02', 'Alpha'),
-  episode('2023-12-30', 'Zulu'),
-  episode('2024-02-01', 'Charlie'),
-  episode('2024-01-01', 'Yankee'),
-  episode('2023-12-31', 'Echo'),
-  episode('2024-01-10', 'Mike'),
-  episode('2024-01-03', 'Bravo'),
+  episode('2024-01-02', 'Alpha', 'guid-3'),
+  episode('2023-12-30', 'Zulu', 'guid-6'),
+  episode('2024-02-01', 'Charlie', 'guid-1'),
+  episode('2024-01-01', 'Yankee', 'guid-7'),
+  episode('2023-12-31', 'Echo', 'guid-2'),
+  episode('2024-01-10', 'Mike', 'guid-5'),
+  episode('2024-01-03', 'Bravo', 'guid-4'),
 ];
 
 /** Run `download`, then check the state files, which must hold after every completed run. */
@@ -161,16 +161,20 @@ describe('podcast-dl download', () => {
     expect(episodes.map((ep) => server.hits(ep.audioPath))).toEqual([2, 2, 2]);
   });
 
-  it('downloads an item the feed lists twice only once', async () => {
+  it('downloads, and later skips, an item the feed lists twice only once', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
     const repeated = dailyEpisode(1);
     subscribe(ws, publishPodcast(server, SHOW, [repeated, repeated]), SHOW);
 
-    const result = await runDownloadAndCheckState(ws);
-
-    expectSuccess(result);
+    const first = await runDownloadAndCheckState(ws);
+    expectSuccess(first);
+    expect(summaryOf(first.stdout)).toEqual({ downloaded: 1, skipped: 0, failed: 0 });
     expect(await listFiles(ws.downloadsDir)).toEqual([fileOf(1)]);
+
+    const second = await runDownloadAndCheckState(ws);
+    expectSuccess(second);
+    expect(summaryOf(second.stdout)).toEqual({ downloaded: 0, skipped: 1, failed: 0 });
     expect(server.hits(repeated.audioPath)).toBe(1);
   });
 
