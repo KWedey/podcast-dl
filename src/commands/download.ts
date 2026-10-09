@@ -37,9 +37,11 @@ function filterEpisodes(
 ): { filtered: Episode[]; skipped: Episode[] } {
   const skipped: Episode[] = [];
   const candidates: Episode[] = [];
+  // One read per feed: each store call reads and checks the whole history file.
+  const downloaded = new Set(historyStore.getDownloadedGuids(feedUrl));
 
   for (const ep of episodes) {
-    if (historyStore.isDownloaded(feedUrl, ep.guid)) {
+    if (downloaded.has(ep.guid)) {
       skipped.push(ep);
     } else {
       candidates.push(ep);
