@@ -1,5 +1,7 @@
 # podcast-dl
 
+[![CI](https://github.com/KWedey/podcast-dl/actions/workflows/ci.yml/badge.svg)](https://github.com/KWedey/podcast-dl/actions/workflows/ci.yml)
+
 A CLI tool that downloads podcast episodes from RSS feeds as MP3 files, organized by podcast name, for offline playback.
 
 ## Requirements
@@ -9,8 +11,8 @@ A CLI tool that downloads podcast episodes from RSS feeds as MP3 files, organize
 ## Install
 
 ```bash
-git clone https://github.com/KWedey/rssDownload.git
-cd rssDownload
+git clone https://github.com/KWedey/podcast-dl.git
+cd podcast-dl
 npm install
 npm run build
 ```
@@ -28,7 +30,7 @@ You can run commands two ways:
 npx tsx src/cli.ts add https://example.com/feed.xml
 ```
 
-Validates the URL is a real RSS feed with audio enclosures, then saves the subscription.
+Validates the URL is a real RSS feed with at least one MP3 episode, then saves the subscription.
 
 ### List subscribed feeds
 
@@ -57,7 +59,7 @@ npx tsx src/cli.ts download
 For each subscribed feed:
 - Fetches the RSS feed
 - Downloads up to 5 most recent un-downloaded episodes
-- Saves to `downloads/<PodcastName>/<episode>.mp3`
+- Saves to `downloads/<podcast-name>/<YYYY-MM-DD>_<Episode Title>.mp3`
 - Tracks downloads by GUID so episodes are never re-downloaded
 - Retries previously failed downloads automatically
 
@@ -83,12 +85,24 @@ npx tsx src/cli.ts download
 ## How it works
 
 - **State** is stored in `data/feeds.json` and `data/history.json` (project-relative)
-- **Downloads** go to `downloads/<PodcastName>/<episode>.mp3`
+- **Downloads** go to `downloads/<podcast-name>/<YYYY-MM-DD>_<Episode Title>.mp3`
 - Files use **atomic writes** (temp file + rename) so crashes never corrupt state
 - Filenames are **FAT32-safe** (no colons, slashes, or illegal characters)
 - Downloads **stream to disk** without buffering entire files in memory
 - Incomplete downloads use a temp file and are only renamed on success
 
+## Tests
+
+```bash
+npm run check   # typecheck + all tests (what CI runs)
+npm test        # tests only
+```
+
+- **Unit** (`test/unit/`): filename sanitizing, feed validation and parsing, state stores, atomic writes, streamed downloads
+- **Integration** (`test/integration/`): runs the real CLI in a temp directory against a local HTTP server serving fixture feeds and fake MP3s
+- Integration covers the 5-newest rule, GUID de-dup across runs, retries, dropped connections, and a process killed mid-download
+- No network access, no fixed sleeps, no skipped tests
+
 ## Tech stack
 
-TypeScript (ESM), Commander, feedsmith, write-file-atomic, filenamify, picocolors
+TypeScript (ESM), Commander, feedsmith, write-file-atomic, filenamify, picocolors; tested with Vitest
