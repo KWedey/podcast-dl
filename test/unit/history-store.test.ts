@@ -63,6 +63,17 @@ describe('history store', () => {
     expect(history.isDownloaded(FEED, 'old-2')).toBe(true);
   });
 
+  it('reads an empty state file as no history', async () => {
+    const ws = await createWorkspace();
+    mkdirSync(ws.dataDir, { recursive: true });
+    writeFileSync(ws.historyPath, '');
+
+    const history = createHistoryStore(ws.historyPath);
+    expect(history.getDownloadedGuids(FEED)).toEqual([]);
+    history.markDownloaded(FEED, 'guid-1');
+    expect(await readHistory(ws)).toEqual({ [FEED]: [{ guid: 'guid-1', status: 'downloaded' }] });
+  });
+
   it('reads a feed that mixes legacy GUIDs with current entries', async () => {
     const ws = await createWorkspace();
     mkdirSync(ws.dataDir, { recursive: true });
