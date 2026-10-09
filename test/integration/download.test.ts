@@ -118,6 +118,19 @@ describe('podcast-dl download', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual([`${SHOW_DIR}/2024-01-01_${'a'.repeat(79)}🎙.mp3`]);
   });
 
+  it('keeps long multi-byte titles within the 255-byte filename limit of Linux filesystems', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    subscribe(ws, publishPodcast(server, SHOW, [{ ...dailyEpisode(1), title: '語'.repeat(90) }]), SHOW);
+
+    const result = await runDownloadAndCheckState(ws);
+
+    expectSuccess(result);
+    const [file] = await listFiles(ws.downloadsDir);
+    expect(file).toBe(`${SHOW_DIR}/2024-01-01_${'語'.repeat(66)}.mp3`);
+    expect(Buffer.byteLength(`${file.split('/')[1]}.tmp`)).toBeLessThanOrEqual(255);
+  });
+
   it('keeps both episodes when their names collide, each under a short hash of its GUID', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();

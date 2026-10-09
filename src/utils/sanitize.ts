@@ -20,6 +20,29 @@ export function sanitizeFilename(name: string): string {
   });
 }
 
+/** Longest title kept in a filename, in user-perceived characters. */
+const MAX_TITLE_CHARACTERS = 80;
+
+/**
+ * Most Linux filesystems cap a name at 255 bytes. This leaves room for the date
+ * prefix, a collision hash and ".mp3.tmp".
+ */
+const MAX_TITLE_BYTES = 200;
+
+/** Shorten a sanitized title for a filename without splitting a character or emoji. */
+export function shortenTitle(title: string): string {
+  let result = '';
+  let characters = 0;
+  let bytes = 0;
+  for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(title)) {
+    bytes += Buffer.byteLength(segment);
+    if (characters === MAX_TITLE_CHARACTERS || bytes > MAX_TITLE_BYTES) break;
+    result += segment;
+    characters++;
+  }
+  return result;
+}
+
 /**
  * Sanitize a string for use as a podcast directory name.
  * Strips FAT32-illegal characters, then slugifies to lowercase + dashes.

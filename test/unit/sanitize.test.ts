@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeDirName, sanitizeFilename } from '../../src/utils/sanitize.js';
+import { sanitizeDirName, sanitizeFilename, shortenTitle } from '../../src/utils/sanitize.js';
 
 const FAT32_ILLEGAL = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
 
@@ -35,6 +35,27 @@ describe('sanitizeFilename', () => {
 
   it('caps length at 100 characters', () => {
     expect(sanitizeFilename('x'.repeat(150))).toHaveLength(100);
+  });
+});
+
+describe('shortenTitle', () => {
+  it('keeps a short title whole', () => {
+    expect(shortenTitle('Episode 12 - Café')).toBe('Episode 12 - Café');
+  });
+
+  it('keeps at most 80 characters', () => {
+    expect(shortenTitle('x'.repeat(100))).toBe('x'.repeat(80));
+  });
+
+  it('never splits an emoji, even one built from several code points', () => {
+    const family = '👨‍👩‍👧';
+    expect(shortenTitle(`${'a'.repeat(79)}${family} and more`)).toBe(`${'a'.repeat(79)}${family}`);
+  });
+
+  it('stays within 200 UTF-8 bytes, so the full filename fits a 255-byte limit', () => {
+    const title = shortenTitle('語'.repeat(100));
+    expect(title).toBe('語'.repeat(66));
+    expect(Buffer.byteLength(title)).toBeLessThanOrEqual(200);
   });
 });
 

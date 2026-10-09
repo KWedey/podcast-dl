@@ -7,7 +7,7 @@ import { createHistoryStore } from '../state/history-store.js';
 import { getFeedsPath, getHistoryPath, getDownloadsDir } from '../state/paths.js';
 import { fetchEpisodes } from '../services/rss-parser.js';
 import { downloadEpisode } from '../services/episode-downloader.js';
-import { sanitizeFilename, sanitizeDirName } from '../utils/sanitize.js';
+import { sanitizeFilename, sanitizeDirName, shortenTitle } from '../utils/sanitize.js';
 import type { Episode } from '../types.js';
 
 /** Maximum number of new episodes to download per feed per run */
@@ -70,8 +70,7 @@ function baseEpisodePath(
   const datePrefix = episode.publishedAt
     ? new Date(episode.publishedAt).toISOString().slice(0, 10)
     : 'unknown-date';
-  // Cut by code point: a UTF-16 slice can split an emoji into an invalid name.
-  const sanitizedTitle = Array.from(sanitizeFilename(episode.title)).slice(0, 80).join('');
+  const sanitizedTitle = shortenTitle(sanitizeFilename(episode.title));
   const filename = `${datePrefix}_${sanitizedTitle}.mp3`;
   return join(downloadsDir, dirName, filename);
 }
