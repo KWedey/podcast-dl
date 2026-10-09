@@ -1,8 +1,8 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { downloadEpisode } from '../../src/services/episode-downloader.js';
-import { dropMidStream, stallMidStream, startFixtureServer, status } from '../helpers/fixture-server.js';
+import { audio, dropMidStream, stallMidStream, startFixtureServer, status } from '../helpers/fixture-server.js';
 import { fakeMp3 } from '../helpers/rss.js';
 import { createWorkspace, listFiles } from '../helpers/workspace.js';
 
@@ -50,5 +50,18 @@ describe('downloadEpisode', () => {
 
     expect(result).toEqual({ success: false, error: 'HTTP 503' });
     expect(await listFiles(ws.downloadsDir)).toEqual([]);
+  });
+
+  it('reports, rather than throws, when the destination folder cannot be created', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    server.route('/ep.mp3', audio(fakeMp3('blocked')));
+    mkdirSync(ws.downloadsDir);
+    writeFileSync(join(ws.downloadsDir, 'show'), 'a file where the podcast folder should be');
+
+    const result = await downloadEpisode(server.url('/ep.mp3'), join(ws.downloadsDir, 'show', 'ep.mp3'));
+
+    expect(result.success).toBe(false);
+    expect(server.hits('/ep.mp3')).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-import { readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runCli, startCli, type CliResult } from '../helpers/cli.js';
@@ -219,6 +219,21 @@ describe('podcast-dl download', () => {
 
     expect(result.stdout).toContain('Error fetching feed: HTTP 500 fetching feed');
     expect(await listFiles(ws.downloadsDir)).toEqual(['beta-works/2024-01-01_Episode 1.mp3']);
+  });
+
+  it('fails an episode it cannot save without aborting the rest of the run', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    subscribe(ws, publishPodcast(server, 'Alpha Blocked', [dailyEpisode(1)], '/alpha.xml'), 'Alpha Blocked');
+    subscribe(ws, publishPodcast(server, 'Beta Works', [dailyEpisode(2)], '/beta.xml'), 'Beta Works');
+    mkdirSync(ws.downloadsDir);
+    writeFileSync(join(ws.downloadsDir, 'alpha-blocked'), 'a file where the podcast folder should be');
+
+    const result = await download(ws);
+
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain('- Alpha Blocked: Episode 1');
+    expect(await listFiles(ws.downloadsDir)).toEqual(['alpha-blocked', 'beta-works/2024-01-02_Episode 2.mp3']);
   });
 
   it('survives being killed mid-download: state stays consistent and the next run finishes the job', async () => {

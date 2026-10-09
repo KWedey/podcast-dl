@@ -28,10 +28,10 @@ export async function downloadEpisode(
 ): Promise<DownloadResult> {
   const tmpPath = destPath + '.tmp';
 
-  // Ensure parent directory exists
-  await mkdir(dirname(destPath), { recursive: true });
-
   try {
+    // Inside the try: an unusable folder fails this episode, not the whole run.
+    await mkdir(dirname(destPath), { recursive: true });
+
     const response = await fetch(audioUrl, {
       headers: { 'User-Agent': 'podcast-dl/0.1.0' },
       signal: AbortSignal.timeout(300_000), // 5 min timeout for large files
