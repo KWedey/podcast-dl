@@ -123,6 +123,30 @@ export function stallMidStream(body: Buffer, sentBytes: number) {
   return { handler, sent, finish: () => finish() };
 }
 
+/** A response the test writes by hand, piece by piece. `requested` resolves when the request arrives. */
+export function manualResponse() {
+  let response: ServerResponse | undefined;
+  let markRequested!: () => void;
+  const requested = new Promise<void>((resolve) => (markRequested = resolve));
+  const current = (): ServerResponse => {
+    if (!response) throw new Error('manualResponse: no request has arrived yet');
+    return response;
+  };
+  const handler: Handler = (_req, res) => {
+    response = res;
+    markRequested();
+  };
+  return {
+    handler,
+    requested,
+    head: (contentLength: number) =>
+      void current().writeHead(200, { 'Content-Type': 'audio/mpeg', 'Content-Length': contentLength }),
+    /** Resolves once the piece is flushed to the socket. */
+    write: (piece: Buffer) => new Promise<void>((resolve) => current().write(piece, () => resolve())),
+    end: () => void current().end(),
+  };
+}
+
 /** Use each handler for one request in turn; the last one answers every request after that. */
 export function sequence(...handlers: Handler[]): Handler {
   let calls = 0;
