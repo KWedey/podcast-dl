@@ -1,5 +1,5 @@
 import { createWriteStream } from 'node:fs';
-import { rename, unlink, mkdir } from 'node:fs/promises';
+import { rename, rm, mkdir } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { dirname } from 'node:path';
@@ -29,7 +29,6 @@ export async function downloadEpisode(
   const tmpPath = destPath + '.tmp';
 
   try {
-    // Inside the try: an unusable folder fails this episode, not the whole run.
     await mkdir(dirname(destPath), { recursive: true });
 
     const response = await fetch(audioUrl, {
@@ -37,12 +36,13 @@ export async function downloadEpisode(
       signal: AbortSignal.timeout(300_000), // 5 min timeout for large files
     });
 
+    // Throw rather than return, so every failure goes through the temp-file cleanup below.
     if (!response.ok) {
-      return { success: false, error: `HTTP ${response.status}` };
+      throw new Error(`HTTP ${response.status}`);
     }
 
     if (!response.body) {
-      return { success: false, error: 'No response body' };
+      throw new Error('No response body');
     }
 
     // Stream to temp file using Node.js stream pipeline
@@ -57,12 +57,9 @@ export async function downloadEpisode(
 
     return { success: true };
   } catch (error) {
-    // Clean up temp file on failure
-    try {
-      await unlink(tmpPath);
-    } catch {
-      // Temp file may not exist if fetch failed before writing
-    }
+    // Also removes a partial file left by an earlier run that was killed mid-download.
+    // Best effort: the error worth reporting is the one that got us here.
+    await rm(tmpPath, { force: true }).catch(() => {});
 
     const message = error instanceof Error ? error.message : 'Unknown error';
     return { success: false, error: message };

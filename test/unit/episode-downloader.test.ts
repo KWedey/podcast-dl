@@ -74,6 +74,20 @@ describe('downloadEpisode', () => {
     expect(await listFiles(ws.downloadsDir)).toEqual([]);
   });
 
+  it('clears a partial file left by a killed run, even when this attempt fails', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    server.route('/ep.mp3', status(404));
+    const dest = join(ws.downloadsDir, 'show', 'ep.mp3');
+    mkdirSync(join(ws.downloadsDir, 'show'), { recursive: true });
+    writeFileSync(`${dest}.tmp`, 'half an episode from a run that was killed');
+
+    const result = await downloadEpisode(server.url('/ep.mp3'), dest);
+
+    expect(result).toEqual({ success: false, error: 'HTTP 404' });
+    expect(await listFiles(ws.downloadsDir)).toEqual([]);
+  });
+
   it('reports, rather than throws, when the destination folder cannot be created', async () => {
     const ws = await createWorkspace();
     const server = await startFixtureServer();
