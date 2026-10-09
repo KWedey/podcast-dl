@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { expect, onTestFinished } from 'vitest';
 import { createFeedsStore } from '../../src/state/feeds-store.js';
-import type { DownloadHistory } from '../../src/types.js';
+import type { DownloadHistory, Feed } from '../../src/types.js';
 
 /** A throwaway project directory: the CLI's cwd, holding its data/ and downloads/. */
 export interface Workspace {
@@ -14,10 +14,19 @@ export interface Workspace {
   downloadsDir: string;
 }
 
-/** Create an isolated workspace that is deleted when the current test finishes. */
+/**
+ * Create an isolated workspace, deleted when the current test finishes.
+ * A failed test keeps it and prints its path, so the evidence survives.
+ */
 export async function createWorkspace(): Promise<Workspace> {
   const dir = await mkdtemp(join(tmpdir(), 'podcast-dl-test-'));
-  onTestFinished(() => rm(dir, { recursive: true, force: true }));
+  onTestFinished(async ({ task }) => {
+    if (task.result?.state === 'fail') {
+      console.error(`Kept workspace of failed test "${task.name}": ${dir}`);
+      return;
+    }
+    await rm(dir, { recursive: true, force: true });
+  });
   const dataDir = join(dir, 'data');
   return {
     dir,
@@ -48,13 +57,19 @@ export async function listFiles(root: string): Promise<string[]> {
     .sort();
 }
 
+/** feeds.json exactly as stored on disk. */
+export async function readFeeds(ws: Workspace): Promise<Feed[]> {
+  return JSON.parse(await readFile(ws.feedsPath, 'utf8')) as Feed[];
+}
+
+/** history.json exactly as stored on disk. */
 export async function readHistory(ws: Workspace): Promise<DownloadHistory> {
   return JSON.parse(await readFile(ws.historyPath, 'utf8')) as DownloadHistory;
 }
 
 /**
- * State must never be observable half-written: data/ holds only complete JSON
- * files, with no temp files left over from an interrupted atomic write.
+ * After a run that was not killed, data/ holds only complete JSON files and
+ * no temp files left over from an atomic write.
  */
 export async function expectStateIntact(ws: Workspace): Promise<void> {
   const files = await listFiles(ws.dataDir);

@@ -8,9 +8,12 @@ describe('sanitizeFilename', () => {
     expect(sanitizeFilename(`before${char}after`)).toBe('before-after');
   });
 
-  it('removes every control character', () => {
+  it('removes every control character but keeps the surrounding text', () => {
     const allControlChars = String.fromCharCode(...Array.from({ length: 32 }, (_, i) => i));
-    expect(sanitizeFilename(`a${allControlChars}b`)).not.toMatch(/[\u0000-\u001f]/);
+    const result = sanitizeFilename(`a${allControlChars}b`);
+
+    expect(result).toMatch(/^a.*b$/);
+    expect(result).not.toMatch(/[\u0000-\u001f]/);
   });
 
   it('leaves ordinary punctuation and non-ASCII letters readable', () => {
@@ -19,13 +22,15 @@ describe('sanitizeFilename', () => {
     );
   });
 
-  it('cannot produce a path that escapes its directory', () => {
-    expect(sanitizeFilename('../../etc/passwd')).not.toMatch(/[/\\]/);
-    expect(sanitizeFilename('..')).not.toBe('..');
+  it.each([
+    ['..', '-'],
+    ['../../etc/passwd', '-..-etc-passwd'],
+  ])('turns the path-traversal attempt %j into the plain name %j', (input, expected) => {
+    expect(sanitizeFilename(input)).toBe(expected);
   });
 
-  it('avoids names reserved by Windows/FAT drivers', () => {
-    expect(sanitizeFilename('CON')).not.toBe('CON');
+  it('suffixes names Windows reserves for devices', () => {
+    expect(sanitizeFilename('CON')).toBe('CON-');
   });
 
   it('caps length at 100 characters', () => {

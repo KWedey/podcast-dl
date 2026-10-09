@@ -1,11 +1,16 @@
 import { audio, xml, type FixtureServer } from './fixture-server.js';
 
+export interface Enclosure {
+  url: string;
+  type: string;
+}
+
 export interface ItemSpec {
   title?: string;
   guid?: string;
   /** Raw <pubDate> text, exactly as a publisher would write it. */
   pubDate?: string;
-  enclosure?: { url: string; type: string };
+  enclosure?: Enclosure | Enclosure[];
 }
 
 export interface ChannelSpec {
@@ -27,10 +32,11 @@ export function rssFeed(channel: ChannelSpec, items: ItemSpec[]): string {
     value === undefined ? '' : `<${name}>${escapeXml(value)}</${name}>`;
 
   const itemXml = items.map((item) => {
-    const enclosure = item.enclosure
-      ? `<enclosure url="${escapeXml(item.enclosure.url)}" type="${escapeXml(item.enclosure.type)}" length="1024"/>`
-      : '';
-    return `<item>${tag('title', item.title)}${tag('guid', item.guid)}${tag('pubDate', item.pubDate)}${enclosure}</item>`;
+    const enclosures = [item.enclosure ?? []]
+      .flat()
+      .map((e) => `<enclosure url="${escapeXml(e.url)}" type="${escapeXml(e.type)}" length="1024"/>`)
+      .join('');
+    return `<item>${tag('title', item.title)}${tag('guid', item.guid)}${tag('pubDate', item.pubDate)}${enclosures}</item>`;
   });
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -47,37 +53,46 @@ export function fakeMp3(label: string): Buffer {
   return Buffer.concat([id3Header, Buffer.from(`fake audio: ${label}\n`.repeat(64))]);
 }
 
-export interface DailyEpisode {
+export interface FixtureEpisode {
   guid: string;
   title: string;
+  /** Raw <pubDate> text; omitted means the item has none. */
   pubDate?: string;
   audioPath: string;
   body: Buffer;
 }
 
-/** Episode n of a daily show, published at noon UTC on 2024-01-n. */
-export function dailyEpisode(n: number): DailyEpisode {
-  const day = String(n).padStart(2, '0');
+/** An episode published at noon UTC on `date` (YYYY-MM-DD). */
+export function episode(date: string, title: string): FixtureEpisode {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return {
-    guid: `episode-${n}`,
-    title: `Episode ${n}`,
-    pubDate: new Date(`2024-01-${day}T12:00:00Z`).toUTCString(),
-    audioPath: `/audio/episode-${n}.mp3`,
-    body: fakeMp3(`episode-${n}`),
+    guid: `urn:test:${slug}`,
+    title,
+    pubDate: new Date(`${date}T12:00:00Z`).toUTCString(),
+    audioPath: `/audio/${slug}.mp3`,
+    body: fakeMp3(slug),
   };
 }
 
+/** Episode n of a daily show: "Episode n", published 2024-01-n. */
+export function dailyEpisode(n: number): FixtureEpisode {
+  return episode(`2024-01-${String(n).padStart(2, '0')}`, `Episode ${n}`);
+}
+
 /**
- * Serve a podcast: the feed at `feedPath` and a healthy MP3 route per episode,
- * listed in the order given. Re-publishing replaces the feed. Returns the feed URL.
+ * Serve a podcast: the feed at `feedPath` plus a healthy MP3 route for each
+ * episode that has no route yet, so custom handlers survive re-publishing.
+ * Items are listed in the order given. Returns the feed URL.
  */
 export function publishPodcast(
   server: FixtureServer,
   title: string,
-  episodes: DailyEpisode[],
+  episodes: FixtureEpisode[],
   feedPath = '/feed.xml',
 ): string {
-  for (const ep of episodes) server.route(ep.audioPath, audio(ep.body));
+  for (const ep of episodes) {
+    if (!server.isRouted(ep.audioPath)) server.route(ep.audioPath, audio(ep.body));
+  }
   const items = episodes.map((ep) => ({
     title: ep.title,
     guid: ep.guid,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateFeed } from '../../src/services/feed-validator.js';
-import { html, startFixtureServer, status, unreachableUrl, xml } from '../helpers/fixture-server.js';
+import { deadHostUrl, html, startFixtureServer, status, xml } from '../helpers/fixture-server.js';
 import { rssFeed, type ChannelSpec, type ItemSpec } from '../helpers/rss.js';
 
 const NO_MP3_EPISODES = 'Feed has no MP3 episodes';
@@ -72,6 +72,6 @@ describe('validateFeed', () => {
   });
 
   it('reports a host that cannot be reached', async () => {
-    await expect(validateFeed(await unreachableUrl('/feed.xml'))).rejects.toThrow(/^Failed to fetch URL/);
+    await expect(validateFeed(await deadHostUrl('/feed.xml'))).rejects.toThrow(/^Failed to fetch URL/);
   });
 });

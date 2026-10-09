@@ -2,7 +2,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { downloadEpisode } from '../../src/services/episode-downloader.js';
-import { audio, dropMidStream, stallMidStream, startFixtureServer, status } from '../helpers/fixture-server.js';
+import {
+  audio,
+  dropMidStream,
+  redirect,
+  stallMidStream,
+  startFixtureServer,
+  status,
+} from '../helpers/fixture-server.js';
 import { fakeMp3 } from '../helpers/rss.js';
 import { createWorkspace, listFiles } from '../helpers/workspace.js';
 
@@ -20,13 +27,26 @@ describe('downloadEpisode', () => {
     await stalled.sent;
 
     // Bytes reach disk before the response ends (streamed, not buffered), but only under the temp name.
-    await vi.waitFor(() => expect(readFileSync(`${dest}.tmp`)).toEqual(firstChunk));
+    await vi.waitFor(() => expect(readFileSync(`${dest}.tmp`)).toEqual(firstChunk), { timeout: 5_000 });
     expect(existsSync(dest)).toBe(false);
 
     stalled.finish();
     await expect(result).resolves.toEqual({ success: true });
     expect(readFileSync(dest)).toEqual(body);
     expect(await listFiles(ws.downloadsDir)).toEqual(['show/ep.mp3']);
+  });
+
+  it('follows tracking redirects to the audio file', async () => {
+    const ws = await createWorkspace();
+    const server = await startFixtureServer();
+    const body = fakeMp3('redirected');
+    server.route('/track/ep.mp3', redirect(server.url('/cdn/ep.mp3'), 302));
+    server.route('/cdn/ep.mp3', redirect(server.url('/storage/ep.mp3'), 301));
+    server.route('/storage/ep.mp3', audio(body));
+    const dest = join(ws.downloadsDir, 'show', 'ep.mp3');
+
+    await expect(downloadEpisode(server.url('/track/ep.mp3'), dest)).resolves.toEqual({ success: true });
+    expect(readFileSync(dest)).toEqual(body);
   });
 
   it('leaves no .mp3 and no temp file when the connection drops mid-body', async () => {
@@ -38,6 +58,8 @@ describe('downloadEpisode', () => {
     const result = await downloadEpisode(server.url('/ep.mp3'), join(ws.downloadsDir, 'show', 'ep.mp3'));
 
     expect(result.success).toBe(false);
+    expect(result.error).not.toMatch(/^HTTP/);
+    expect(server.hits('/ep.mp3')).toBe(1);
     expect(await listFiles(ws.downloadsDir)).toEqual([]);
   });
 
@@ -61,7 +83,7 @@ describe('downloadEpisode', () => {
 
     const result = await downloadEpisode(server.url('/ep.mp3'), join(ws.downloadsDir, 'show', 'ep.mp3'));
 
-    expect(result.success).toBe(false);
+    expect(result).toEqual({ success: false, error: expect.stringMatching(/EEXIST|ENOTDIR/) });
     expect(server.hits('/ep.mp3')).toBe(0);
   });
 });
