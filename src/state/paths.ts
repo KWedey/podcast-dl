@@ -1,9 +1,6 @@
 import { join } from 'node:path';
 
-/**
- * Get the project-relative data directory for state files.
- * Uses <project-root>/data/ -- everything stays within the project directory.
- */
+/** Data directory for state files: data/ under the current working directory. */
 export function getDataDir(): string {
   return join(process.cwd(), 'data');
 }
@@ -18,10 +15,7 @@ export function getHistoryPath(): string {
   return join(getDataDir(), 'history.json');
 }
 
-/**
- * Get the project-relative downloads directory for episode files.
- * Uses <project-root>/downloads/ -- keeps downloads alongside data files.
- */
+/** Downloads directory for episode files: downloads/ under the current working directory. */
 export function getDownloadsDir(): string {
   return join(process.cwd(), 'downloads');
 }

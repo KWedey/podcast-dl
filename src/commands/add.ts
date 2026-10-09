@@ -8,7 +8,7 @@ import type { Feed } from '../types.js';
 /**
  * Register the "add" subcommand for subscribing to a podcast RSS feed.
  * Validates the URL format, checks for duplicates, validates the feed
- * contains audio enclosures, then stores the subscription.
+ * has MP3 episodes, then stores the subscription.
  */
 export function registerAddCommand(program: Command): void {
   program
