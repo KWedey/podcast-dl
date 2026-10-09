@@ -58,6 +58,7 @@ describe('parseFeedDate', () => {
     ['as an ISO 8601 day', '2024-01-01', '2024-01-01T00:00:00.000Z'],
     ['as JavaScript Date#toString output', 'Mon Jan 01 2024 10:00:00 GMT+0200 (Eastern European Standard Time)', '2024-01-01T08:00:00.000Z'],
     ['in a loose US style with no zone', 'January 1, 2024 10:00', '2024-01-01T10:00:00.000Z'],
+    ['with no zone, at a time Auckland skips for DST', 'September 29, 2024 02:30', '2024-09-29T02:30:00.000Z'],
     ['with dashes before the year and no zone', '01-Jan-2024 10:00:00', '2024-01-01T10:00:00.000Z'],
     ['as dashed numbers with no zone', '01-01-2024 10:00', '2024-01-01T10:00:00.000Z'],
     ['with an hours-only offset', 'Mon, 01 Jan 2024 10:00:00 +05', '2024-01-01T05:00:00.000Z'],
