@@ -28,7 +28,8 @@ export function readStateFile<T>(
 
   let data: unknown;
   try {
-    data = JSON.parse(raw);
+    // Some editors save a byte order mark, which JSON.parse rejects.
+    data = JSON.parse(raw.replace(/^﻿/, ''));
   } catch {
     throw unusableStateFile(filePath, 'not valid JSON');
   }

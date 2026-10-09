@@ -44,6 +44,14 @@ describe('feeds store', () => {
     expect(readFileSync(ws.feedsPath, 'utf8')).toBe(before);
   });
 
+  it('reads a state file an editor saved with a UTF-8 byte order mark', async () => {
+    const ws = await createWorkspace();
+    mkdirSync(ws.dataDir, { recursive: true });
+    writeFileSync(ws.feedsPath, `﻿${JSON.stringify([daily])}`);
+
+    expect(createFeedsStore(ws.feedsPath).getAll()).toEqual([daily]);
+  });
+
   it('refuses a state path that exists but cannot be read as a file, naming it', async () => {
     const ws = await createWorkspace();
     mkdirSync(ws.feedsPath, { recursive: true });
