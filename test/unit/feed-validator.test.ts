@@ -3,6 +3,8 @@ import { validateFeed } from '../../src/services/feed-validator.js';
 import { html, startFixtureServer, status, unreachableUrl, xml } from '../helpers/fixture-server.js';
 import { rssFeed, type ChannelSpec, type ItemSpec } from '../helpers/rss.js';
 
+const NO_MP3_EPISODES = 'Feed has no MP3 episodes';
+
 const MP3_ITEM: ItemSpec = {
   title: 'Episode 1',
   guid: 'episode-1',
@@ -38,12 +40,27 @@ describe('validateFeed', () => {
     await expect(validateFeed(server.url('/'))).rejects.toThrow('URL is not a valid RSS or Atom feed');
   });
 
+  // Anything accepted here must yield at least one episode `download` can fetch.
   it.each([
     ['has no enclosures', { title: 'Blog post' }],
     ['only encloses images', { title: 'Cover art', enclosure: { url: 'https://cdn.example.test/a.jpg', type: 'image/jpeg' } }],
+    ['only encloses non-MP3 audio', { title: 'AAC', enclosure: { url: 'https://cdn.example.test/a.m4a', type: 'audio/x-m4a' } }],
   ])('rejects an RSS feed whose items %s', async (_case, item: ItemSpec) => {
     const url = await serveFeed({ title: 'Not A Podcast' }, [item]);
-    await expect(validateFeed(url)).rejects.toThrow('contains no audio enclosures');
+    await expect(validateFeed(url)).rejects.toThrow(NO_MP3_EPISODES);
+  });
+
+  it('rejects an Atom feed, whose enclosures download cannot read', async () => {
+    const server = await startFixtureServer();
+    server.route(
+      '/atom.xml',
+      xml(`<?xml version="1.0"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Atom Show</title><id>urn:show</id><updated>2024-01-01T00:00:00Z</updated>
+<entry><title>Episode 1</title><id>urn:ep1</id><updated>2024-01-01T00:00:00Z</updated>
+<link rel="enclosure" type="audio/mpeg" href="https://cdn.example.test/1.mp3"/></entry></feed>`),
+    );
+
+    await expect(validateFeed(server.url('/atom.xml'))).rejects.toThrow(NO_MP3_EPISODES);
   });
 
   it('reports the HTTP status when the server refuses', async () => {
