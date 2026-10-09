@@ -1,10 +1,17 @@
 import { parseFeed } from 'feedsmith';
 import type { Episode } from '../types.js';
 
+/** audio/mpeg is the registered MP3 type; the rest are spellings real feeds use. */
+const MP3_MIME_TYPES = new Set(['audio/mpeg', 'audio/mp3', 'audio/mpeg3', 'audio/x-mp3', 'audio/x-mpeg']);
+
+function isMp3MimeType(type: string | undefined): boolean {
+  return type !== undefined && MP3_MIME_TYPES.has(type.split(';')[0].trim().toLowerCase());
+}
+
 /**
- * Fetch an RSS feed and extract podcast episodes with audio/mpeg enclosures.
+ * Fetch an RSS feed and extract podcast episodes with MP3 enclosures.
  *
- * Only episodes with audio/mpeg enclosures are returned -- other audio formats
+ * Only episodes with MP3 enclosures are returned -- other audio formats
  * (M4A, OGG, etc.) are skipped to ensure MP3 compatibility.
  *
  * @param url - RSS feed URL
@@ -25,18 +32,9 @@ export async function fetchEpisodes(url: string): Promise<Episode[]> {
   return extractEpisodes(parseFeed(content).feed);
 }
 
-/**
- * Pull the downloadable episodes out of a parsed feed: RSS items with an
- * audio/mpeg enclosure. The feed validator uses this too, so `add` accepts
- * exactly the feeds `download` can fetch from.
- */
+/** Pull the downloadable episodes out of a parsed RSS feed: items with an MP3 enclosure. */
 export function extractEpisodes(feed: unknown): Episode[] {
-  // feedsmith returns format-specific structure; access items from the parsed feed
-  const rssFeed = feed as Record<string, unknown>;
-  const items =
-    (rssFeed.items as Array<Record<string, unknown>>) ??
-    (rssFeed.entries as Array<Record<string, unknown>>) ??
-    [];
+  const items = ((feed as Record<string, unknown>).items as Array<Record<string, unknown>>) ?? [];
 
   const episodes: Episode[] = [];
 
@@ -45,10 +43,7 @@ export function extractEpisodes(feed: unknown): Episode[] {
       | Array<{ url?: string; type?: string; length?: number }>
       | undefined;
 
-    // Only accept audio/mpeg enclosures (MP3-compatible)
-    const audioEnclosure = enclosures?.find(
-      (e) => e.type === 'audio/mpeg' && e.url,
-    );
+    const audioEnclosure = enclosures?.find((e) => isMp3MimeType(e.type) && e.url);
 
     if (!audioEnclosure?.url) continue;
 

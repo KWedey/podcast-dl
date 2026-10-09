@@ -38,6 +38,14 @@ describe('fetchEpisodes', () => {
     expect(episodes.map((e) => e.guid)).toEqual(['mp3']);
   });
 
+  it.each(['audio/mpeg', 'audio/mp3', 'Audio/MPEG', 'audio/mpeg; charset=binary', 'audio/x-mp3', 'audio/mpeg3', 'audio/x-mpeg'])(
+    'recognises an enclosure of type %j as MP3',
+    async (type) => {
+      const episodes = await episodesOf([{ title: 'MP3', guid: 'mp3', enclosure: { url: 'https://cdn.example.test/1.mp3', type } }]);
+      expect(episodes.map((e) => e.guid)).toEqual(['mp3']);
+    },
+  );
+
   it('picks the MP3 when an item has several enclosures', async () => {
     const cover = { url: 'https://cdn.example.test/cover.jpg', type: 'image/jpeg' };
     const [episode] = await episodesOf([{ title: 'Two enclosures', guid: 'two', enclosure: [cover, mp3(2)] }]);

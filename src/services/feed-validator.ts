@@ -35,10 +35,13 @@ export async function validateFeed(url: string): Promise<{ title: string }> {
   try {
     parsed = parseFeed(content);
   } catch {
-    throw new Error('URL is not a valid RSS or Atom feed');
+    throw new Error('URL is not a valid RSS feed');
+  }
+  if (parsed.format !== 'rss') {
+    throw new Error(`Only RSS feeds are supported (got ${parsed.format})`);
   }
 
-  // 3. Require at least one episode the download command can fetch
+  // 3. Same episode rules as `download`, so every accepted feed has something to fetch
   if (extractEpisodes(parsed.feed).length === 0) {
     throw new Error(
       'Feed has no MP3 episodes (RSS <enclosure type="audio/mpeg">). Only MP3 podcast feeds are supported.',
